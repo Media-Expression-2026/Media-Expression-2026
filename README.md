@@ -10,7 +10,7 @@
 
 ### 2. Google Driveへのリンク（文字のみ）
 [Google Driveで元のデータを見る](https://drive.google.com/drive/folders/1RXLR9IxWLZIddVzt9PEro3UrsfG0gd6D?usp=drive_link)
-(https://drive.google.com/drive/folders/1dbmUG2saoH2fNwHY8pBF_T7xtCFfUpsV?usp=drive_link)
+[ORGINAL DATA LINK](https://drive.google.com/drive/folders/1dbmUG2saoH2fNwHY8pBF_T7xtCFfUpsV?usp=drive_link)
 *解説：クリックすると、Google Driveのページへ移動します。*
 
 ---
