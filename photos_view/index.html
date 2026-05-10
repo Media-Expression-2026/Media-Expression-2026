@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photos View - Archive</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #000; /* 背景を黒にして静寂を演出 */
+            display: flex;
+            justify-content: center;
+        }
+
+        /* 3列のグリッド設定 */
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); /* 3列 */
+            gap: 2px; /* 画像間の隙間 */
+            width: 100%;
+            max-width: 900px; /* PCでの最大幅 */
+        }
+
+        /* 正方形にする設定 */
+        .gallery img {
+            width: 100%;
+            aspect-ratio: 1 / 1; /* 正方形を維持 */
+            object-fit: cover;   /* 縦横比を維持して切り抜き */
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="gallery">
+        <img src="assets/1.png" alt="photo">
+        <img src="assets/2.png" alt="photo">
+        <img src="assets/3.png" alt="photo">
+        <img src="assets/4.png" alt="photo">
+        <img src="assets/5.jpg" alt="photo">
+    </div>
+
+</body>
+</html>
