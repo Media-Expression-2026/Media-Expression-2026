@@ -98,7 +98,7 @@
         }
 
         // CONTROL STUBS
-        const PARAMS = {"width":450,"height":180,"separation":25,"speed":1.8};
+        const PARAMS = {"scale":75,"speed":0.4,"morph":1,"hueOffset":0.65};
         const addControl = (id, label, min, max, val) => {
             return PARAMS[id] !== undefined ? PARAMS[id] : val;
         };
@@ -124,45 +124,43 @@
             const count = COUNT; // Alias for user code compatibility
             for(let i=0; i<COUNT; i++) {
                  // USER CODE INJECTION START
-                 const wallWidth = addControl("width", "Wall Width", 100, 800, 450);
-                 const wallHeight = addControl("height", "Flame Height", 50, 400, 180);
-                 const separation = addControl("separation", "Separation", 0, 50, 25);
-                 const burnSpeed = addControl("speed", "Burn Speed", 0, 5, 1.8);
+                 const scale = addControl("scale", "Hyper Scale", 10, 150, 75);
+                 const speed = addControl("speed", "Phase Speed", 0.01, 2.0, 0.4);
+                 const morph = addControl("morph", "4D Morph", 0.0, 2.0, 1.0);
+                 const hueOffset = addControl("hueOffset", "Hue Rotation", 0.0, 1.0, 0.65);
                  
-                 const t = time * burnSpeed;
-                 const ratio = i / count;
+                 const t = time * speed;
+                 const n = i / count;
                  
-                 // 1. パーティクルを3つの「層」に分ける (0, 1, 2)
-                 const layer = i % 3;
-                 const layerOffset = (layer - 1) * 15; // Z軸（奥行き）のズレ
+                 const a = n * Math.PI * 2.0;
+                 const b = i * 2.399963229728653;
                  
-                 // 2. ベースの配置（横一列）
-                 const xBase = ((i % (count / 3)) / (count / 3) * 2.0 - 1.0) * (wallWidth * 0.5);
-                 const yBase = -60;
+                 const w = Math.sin(t * 0.7 + n * Math.PI * 4.0) * morph;
+                 const cosW = Math.sqrt(Math.max(0.001, 1.0 - w * w * 0.25));
                  
-                 // 3. 上昇と揺らぎ（層ごとに少しタイミングをずらす）
-                 const yPosBase = (i % 120) / 120 * wallHeight; 
-                 const tempRatio = Math.max(0, Math.min(1.0, yPosBase / wallHeight));
-                 const finalY = yBase + yPosBase + (tempRatio * tempRatio * 40);
+                 const r1 = scale * (0.6 + 0.4 * Math.sin(b * 3.0 + t));
+                 const r2 = scale * (0.6 + 0.4 * Math.cos(a * 5.0 - t));
                  
-                 // 層ごとに揺らぎのタイミングを変えて「重なり」を作る
-                 const layerTime = t + layer * 0.5;
-                 const sepFactor = Math.pow(tempRatio, 2.5);
-                 const noiseX = Math.sin(xBase * 0.04 + finalY * 0.08 - layerTime * 4.0) * separation * sepFactor;
+                 const x = r1 * Math.cos(a) * cosW;
+                 const y = r1 * Math.sin(a) * cosW;
+                 const z = r2 * Math.cos(b + t * 1.5) + (w * scale * 0.6);
                  
-                 // ターゲット位置の設定（Z軸に厚みを出す）
-                 target.set(xBase + noiseX, finalY, layerOffset + Math.sin(xBase * 0.02 + layerTime) * 8);
+                 const foldX = x * Math.cos(t * 0.3) - z * Math.sin(t * 0.3);
+                 const foldZ = x * Math.sin(t * 0.3) + z * Math.cos(t * 0.3);
+                 const foldY = y * Math.cos(t * 0.4) - foldZ * Math.sin(t * 0.4);
+                 const finalZ = y * Math.sin(t * 0.4) + foldZ * Math.cos(t * 0.4);
                  
-                 // 4. 色の設定（層ごとに微妙に色を変えて深みを出す）
-                 const hue = (0.12 - layer * 0.02) * (1.0 - tempRatio); // 奥は少し赤く、手前は黄色く
-                 const saturation = 0.9 + layer * 0.05;
-                 const fadeOut = 1.0 - Math.pow(tempRatio, 5.0); // 先端を綺麗に消す
-                 const lightness = (0.85 * (1.0 - tempRatio * 0.6)) * fadeOut;
+                 target.set(foldX, foldY, finalZ);
                  
-                 color.setHSL(hue, saturation, Math.max(0, lightness));
+                 const h = (hueOffset + n * 0.3 + w * 0.25 + t * 0.15) - Math.floor(hueOffset + n * 0.3 + w * 0.25 + t * 0.15);
+                 const s = 0.6 + 0.4 * Math.abs(Math.sin(a * 3.0 - t));
+                 const l = 0.2 + 0.7 * Math.max(0.0, Math.min(1.0, (finalZ + scale * 1.5) / (scale * 3.0)));
+                 
+                 color.setHSL(h, s, l);
                  
                  if (i === 0) {
-                   setInfo("Layered Fire Wall", "Multi-layered thermal simulation for depth and density.");
+                 setInfo("Hyper-Dimensional Tesseract", "A breathing projection of a 4D Clifford Torus folding through 3D space.");
+                 annotate("center", new THREE.Vector3(0, 0, 0), "Dimensional Rift");
                  }
                  // USER CODE INJECTION END
 
