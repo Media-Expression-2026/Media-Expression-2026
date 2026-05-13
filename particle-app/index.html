@@ -1,1 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Particles Swarm Export</title>
+    <style>body { margin: 0; overflow: hidden; background: #000; }</style>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+<body>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
+        // CONFIG
+        const COUNT = 5000;
+        const SPEED_MULT = 0.2;
+        const AUTO_SPIN = false;
+
+        // SETUP
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x000000, 0.01);
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.set(0, 0, 100);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.autoRotate = AUTO_SPIN;
+        controls.autoRotateSpeed = 2.0;
+
+        // POST PROCESSING
+        const composer = new EffectComposer(renderer);
+        composer.addPass(new RenderPass(scene, camera));
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        bloomPass.strength = 1.8; bloomPass.radius = 0.4; bloomPass.threshold = 0;
+        composer.addPass(bloomPass);
+
+        // SWARM OBJECTS
+        const dummy = new THREE.Object3D();
+        const color = new THREE.Color();
+        const target = new THREE.Vector3();
+        const pColor = new THREE.Color(); // Kept for safety, for potential references
+        
+        // INSTANCED MESH
+        const geometry = new THREE.SphereGeometry(0.3, 16, 16);
+        const material = new THREE.ShaderMaterial({
+    uniforms: {},
+    vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
+        varying vec3 vColor;
+        void main() {
+            vec4 mvPosition = modelViewMatrix * instanceMatrix * vec4(position, 1.0);
+            vNormal = normalize(normalMatrix * normal);
+            vViewPosition = -mvPosition.xyz;
+            vColor = instanceColor;
+            gl_Position = projectionMatrix * mvPosition;
+        }
+    `,
+    fragmentShader: `
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
+        varying vec3 vColor;
+        void main() {
+            float fresnel = dot(vNormal, normalize(vViewPosition));
+            fresnel = clamp(1.0 - fresnel, 0.0, 1.0);
+            fresnel = pow(fresnel, 2.0);
+            vec3 col = vColor * fresnel + vec3(0.1); 
+            gl_FragColor = vec4(col, 0.3 + fresnel * 0.7);
+        }
+    `,
+    transparent: true, blending: 2, depthWrite: false
+});
+        
+        const instancedMesh = new THREE.InstancedMesh(geometry, material, COUNT);
+        instancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        scene.add(instancedMesh);
+
+        // DATA ARRAYS
+        const positions = [];
+        for(let i=0; i<COUNT; i++) {
+            positions.push(new THREE.Vector3((Math.random()-0.5)*100, (Math.random()-0.5)*100, (Math.random()-0.5)*100));
+            instancedMesh.setColorAt(i, color.setHex(0x00ff88)); // Init Color
+        }
+
+        // CONTROL STUBS
+        const PARAMS = {"width":450,"height":180,"separation":25,"speed":1.8};
+        const addControl = (id, label, min, max, val) => {
+            return PARAMS[id] !== undefined ? PARAMS[id] : val;
+        };
+        const setInfo = () => {};
+        const annotate = () => {};
+
+        // ANIMATION LOOP
+        const clock = new THREE.Clock();
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+            const time = clock.getElapsedTime() * SPEED_MULT;
+            
+            // Shader Time Update
+            if(material.uniforms && material.uniforms.uTime) {
+                material.uniforms.uTime.value = time;
+            }
+
+            controls.update();
+
+            // SWARM LOGIC
+            const count = COUNT; // Alias for user code compatibility
+            for(let i=0; i<COUNT; i++) {
+                 // USER CODE INJECTION START
+                 const wallWidth = addControl("width", "Wall Width", 100, 800, 450);
+                 const wallHeight = addControl("height", "Flame Height", 50, 400, 180);
+                 const separation = addControl("separation", "Separation", 0, 50, 25);
+                 const burnSpeed = addControl("speed", "Burn Speed", 0, 5, 1.8);
+                 
+                 const t = time * burnSpeed;
+                 const ratio = i / count;
+                 
+                 // 1. パーティクルを3つの「層」に分ける (0, 1, 2)
+                 const layer = i % 3;
+                 const layerOffset = (layer - 1) * 15; // Z軸（奥行き）のズレ
+                 
+                 // 2. ベースの配置（横一列）
+                 const xBase = ((i % (count / 3)) / (count / 3) * 2.0 - 1.0) * (wallWidth * 0.5);
+                 const yBase = -60;
+                 
+                 // 3. 上昇と揺らぎ（層ごとに少しタイミングをずらす）
+                 const yPosBase = (i % 120) / 120 * wallHeight; 
+                 const tempRatio = Math.max(0, Math.min(1.0, yPosBase / wallHeight));
+                 const finalY = yBase + yPosBase + (tempRatio * tempRatio * 40);
+                 
+                 // 層ごとに揺らぎのタイミングを変えて「重なり」を作る
+                 const layerTime = t + layer * 0.5;
+                 const sepFactor = Math.pow(tempRatio, 2.5);
+                 const noiseX = Math.sin(xBase * 0.04 + finalY * 0.08 - layerTime * 4.0) * separation * sepFactor;
+                 
+                 // ターゲット位置の設定（Z軸に厚みを出す）
+                 target.set(xBase + noiseX, finalY, layerOffset + Math.sin(xBase * 0.02 + layerTime) * 8);
+                 
+                 // 4. 色の設定（層ごとに微妙に色を変えて深みを出す）
+                 const hue = (0.12 - layer * 0.02) * (1.0 - tempRatio); // 奥は少し赤く、手前は黄色く
+                 const saturation = 0.9 + layer * 0.05;
+                 const fadeOut = 1.0 - Math.pow(tempRatio, 5.0); // 先端を綺麗に消す
+                 const lightness = (0.85 * (1.0 - tempRatio * 0.6)) * fadeOut;
+                 
+                 color.setHSL(hue, saturation, Math.max(0, lightness));
+                 
+                 if (i === 0) {
+                   setInfo("Layered Fire Wall", "Multi-layered thermal simulation for depth and density.");
+                 }
+                 // USER CODE INJECTION END
+
+                 // LERP & UPDATE
+                 positions[i].lerp(target, 0.1);
+                 dummy.position.copy(positions[i]);
+                 dummy.updateMatrix();
+                 instancedMesh.setMatrixAt(i, dummy.matrix);
+                 instancedMesh.setColorAt(i, color); // Fix: Use 'color' which user modifies
+            }
+            instancedMesh.instanceMatrix.needsUpdate = true;
+            instancedMesh.instanceColor.needsUpdate = true;
+
+            composer.render();
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
