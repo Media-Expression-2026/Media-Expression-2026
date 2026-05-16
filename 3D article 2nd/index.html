@@ -1,1 +1,53 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Neural World Camera & Data Stream</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+<body>
 
+    <canvas id="three-canvas"></canvas>
+
+    <div id="split-container">
+        
+        <div id="left-panel">
+            <div class="selector-container">
+                <span style="color: #00ff66; font-size: 11px; margin-right: 8px;">[ SELECT_NODE ] :</span>
+                <select id="camera-selector">
+                    <option value="tokyo" selected>GLOBAL_CAM // NODE_01</option>
+                    <option value="ny">GLOBAL_CAM // NODE_02</option>
+                    <option value="london">GLOBAL_CAM // NODE_03</option>
+                    <option value="venice">GLOBAL_CAM // NODE_04</option>
+                    <option value="local">LOCAL_WEBCAM (OPERATOR)</option>
+                </select>
+            </div>
+
+            <div id="camera-container"></div>
+            <div class="panel-label">// OBSERVER_CAMERA (REALTIME)</div>
+        </div>
+
+        <div id="right-panel">
+            <div id="glitch-screen">
+                <div id="stream-container"></div>
+            </div>
+            <div class="panel-label">// GLOBAL_DATA_STREAM (WIKIPEDIA)</div>
+        </div>
+
+    </div>
+
+    <div id="raw-log-stream"></div>
+    <div id="scanline-overlay"></div>
+
+    <script type="module" src="script.js" defer></script>
+</body>
+</html>
