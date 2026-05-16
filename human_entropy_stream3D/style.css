@@ -1,0 +1,124 @@
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #000;
+    color: #fff;
+    font-family: 'Courier New', Courier, monospace;
+    overflow-x: hidden;
+}
+
+/* 【修正】3Dパーティクルキャンバスを最前面へ */
+#three-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 10;           /* 最も大きい数値にして手前に出す */
+    pointer-events: none;  /* 手前にあってもマウスやスクロール操作を透過させる */
+    mix-blend-mode: screen; /* 下層の映像や文字と粒子が重なったときに発光させる */
+}
+
+#glitch-screen {
+    width: 100%;
+    position: relative;
+    z-index: 2;
+}
+
+#stream-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.data-card {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: transparent; /* 完全に透過させて3Dを見せる */
+}
+
+.card-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    filter: brightness(35%) contrast(110%) grayscale(40%);
+    transition: filter 0.5s ease;
+    z-index: 1;
+}
+
+.card-content {
+    position: absolute;
+    left: 60px;
+    bottom: 80px;
+    z-index: 3; /* 文字が粒子の後ろに埋もれすぎないよう少し強めに設定 */
+    max-width: 55vw;
+    text-shadow: 0 0 12px rgba(0, 0, 0, 1);
+}
+
+.meta-line {
+    font-size: 12px;
+    color: #00ff66;
+    opacity: 0.8;
+    margin-bottom: 15px;
+    letter-spacing: 2px;
+}
+
+.decay-title {
+    font-size: 42px;
+    font-weight: bold;
+    line-height: 1.2;
+    margin: 0 0 20px 0;
+    word-break: break-all;
+}
+
+.decay-comment {
+    font-size: 16px;
+    color: #bbb;
+    line-height: 1.6;
+    word-break: break-all;
+    margin: 0;
+}
+
+#raw-log-stream {
+    position: fixed;
+    right: 20px;
+    top: 20px;
+    width: 35vw;
+    height: 95vh;
+    font-size: 10px;
+    color: rgba(0, 255, 102, 0.35);
+    overflow: hidden;
+    line-height: 1.4;
+    word-break: break-all;
+    z-index: 4;
+    pointer-events: none;
+}
+
+#scanline-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%);
+    background-size: 100% 4px;
+    z-index: 11; /* 最も手前でノイズを走らせる */
+    pointer-events: none;
+}
+
+.system-revert-glitch {
+    animation: glitchFlash 0.3s steps(2) infinite;
+}
+
+@keyframes glitchFlash {
+    0% { filter: invert(100%) hue-rotate(90deg); transform: translate(3px, -3px); }
+    50% { filter: contrast(300%) brightness(150%); transform: translate(-3px, 3px); }
+    100% { filter: none; transform: translate(0, 0); }
+}
