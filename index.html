@@ -3,36 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Media Expression 2026 Archive</title>
+    <title>Media Expression 2026 // Archive Gateway</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; padding: 40px; max-width: 800px; margin: auto; background-color: #f6f8fa; }
-        h1 { border-bottom: 1px solid #d0d7de; padding-bottom: 10px; color: #1f2328; }
-        .menu-list { list-style: none; padding: 0; }
-        .menu-item { background: white; border: 1px solid #d0d7de; border-radius: 6px; margin-bottom: 12px; transition: hover 0.2s; }
-        .menu-item:hover { background-color: #f3f4f6; }
-        .menu-item a { display: block; padding: 15px; text-decoration: none; color: #0969da; font-weight: bold; }
-        .description { font-size: 0.9em; color: #636c76; font-weight: normal; margin-top: 4px; display: block; }
+        body {
+            background-color: #000;
+            color: #00ff66;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 40px;
+            margin: 0;
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 22px;
+            border-bottom: 1px solid rgba(0, 255, 102, 0.3);
+            padding-bottom: 15px;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+        }
+        .meta-info {
+            font-size: 11px;
+            color: rgba(0, 255, 102, 0.5);
+            margin-bottom: 40px;
+        }
+        .stream-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .stream-item {
+            margin-bottom: 12px;
+        }
+        .stream-link {
+            color: #00ff66;
+            text-decoration: none;
+            font-size: 15px;
+            display: block;
+            padding: 12px 20px;
+            border: 1px solid rgba(0, 255, 102, 0.15);
+            background: rgba(5, 5, 5, 0.8);
+            transition: all 0.2s ease;
+        }
+        .stream-link:hover {
+            background: rgba(0, 255, 102, 0.1);
+            border: 1px solid #00ff66;
+            box-shadow: 0 0 12px rgba(0, 255, 102, 0.3);
+            transform: translateX(5px);
+        }
+        .status-tag {
+            float: right;
+            font-size: 11px;
+            opacity: 0.7;
+        }
     </style>
 </head>
 <body>
 
-    <h1>Media Expression 2026 Archive</h1>
-    <p>プロジェクト一覧：</p>
+    <div class="container">
+        <h1>MEDIA EXPRESSION 2026 // ARCHIVE GATEWAY</h1>
+        <div class="meta-info">STATUS: READY // SELECT NODE TO INITIALIZE SUB-SYSTEM</div>
 
-    <ul class="menu-list">
-        <li class="menu-item">
-            <a href="./particle-app/">
-                Particle App
-                <span class="description">パーティクル動画化・表現のデモ</span>
-            </a>
-        </li>
-        <li class="menu-item">
-            <a href="./photos_view/">
-                Photos View
-                <span class="description">画像表示パターンの比較デモ</span>
-            </a>
-        </li>
-    </ul>
+        <ul class="stream-list">
+            <li class="stream-item">
+                <a class="stream-link" href="./3D%20article/index.html">
+                    > 3D article <span class="status-tag">[ NODE_01 ]</span>
+                </a>
+            </li>
+            <li class="stream-item">
+                <a class="stream-link" href="./3D%20article%202nd/index.html">
+                    > 3D article 2nd <span class="status-tag">[ NODE_02 ]</span>
+                </a>
+            </li>
+            <li class="stream-item">
+                <a class="stream-link" href="./ShemelessLoop/index.html">
+                    > ShemelessLoop <span class="status-tag">[ LOOP_SYS ]</span>
+                </a>
+            </li>
+            <li class="stream-item">
+                <a class="stream-link" href="./earth_stream/index.html">
+                    > earth_stream <span class="status-tag">[ DATA_CORE ]</span>
+                </a>
+            </li>
+            <li class="stream-item">
+                <a class="stream-link" href="./earth_stream_media/index.html">
+                    > earth_stream_media <span class="status-tag">[ MEDIA_AV ]</span>
+                </a>
+            </li>
+            <li class="stream-item">
+                <a class="stream-link" href="./human_entropy_stream/index.html">
+                    > human_entropy_stream <span class="status-tag">[ ENTROPY_2D ]</span>
+                </a>
+            </li>
+            <li class="stream-item">
+                <a class="stream-link" href="./human_entropy_stream3D/index.html">
+                    > human_entropy_stream3D <span class="status-tag">[ ENTROPY_3D ]</span>
+                </a>
+            </li>
+            <li class="stream-item">
+                <a class="stream-link" href="./mars_stream/index.html">
+                    > mars_stream <span class="status-tag">[ EXT_NODE ]</span>
+                </a>
+            </li>
+            <li class="stream-item">
+                <a class="stream-link" href="./particle-app/index.html">
+                    > particle-app <span class="status-tag">[ PTCL_MODULE ]</span>
+                </a>
+            </li>
+            <li class="stream-item">
+                <a class="stream-link" href="./photos_view/index.html">
+                    > photos_view <span class="status-tag">[ IMG_ARCHIVE ]</span>
+                </a>
+            </li>
+            <li class="stream-item">
+                <a class="stream-link" href="./wiki_stream/index.html">
+                    > wiki_stream <span class="status-tag">[ WIKI_CORE ]</span>
+                </a>
+            </li>
+        </ul>
+    </div>
 
 </body>
 </html>
