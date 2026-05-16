@@ -1,0 +1,67 @@
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #020617; /* 深海・地球をイメージした濃紺 */
+    color: #38bdf8;            /* 計測値用のライトブルー */
+    font-family: monospace;    /* 数値を綺麗に揃える等幅フォント */
+    overflow-x: hidden;
+}
+
+#stream-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+/* 1つの地域データカード（全画面） */
+.data-card {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box;
+    border-bottom: 1px solid #1e293b;
+    padding: 40px;
+}
+
+/* 観測地点情報 */
+.geo-location {
+    font-size: 20px;
+    color: #f8fafc;
+    margin-bottom: 40px;
+    letter-spacing: 2px;
+}
+
+/* 数値を並べる4分割グリッド */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 25px;
+    max-width: 600px;
+    width: 100%;
+}
+
+/* 各数値のボックス */
+.metric-box {
+    background: rgba(30, 41, 59, 0.4);
+    border: 1px solid #0284c7;
+    padding: 25px;
+    border-radius: 4px;
+    box-shadow: 0 0 15px rgba(2, 132, 199, 0.1);
+}
+
+.metric-label {
+    font-size: 11px;
+    color: #7dd3fc;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.metric-value {
+    font-size: 44px;
+    font-weight: bold;
+    color: #fff;
+    margin-top: 10px;
+}
