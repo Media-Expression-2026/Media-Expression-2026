@@ -1,0 +1,115 @@
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #000;
+    color: #fff;
+    font-family: 'Courier New', Courier, monospace;
+    overflow-x: hidden;
+}
+
+#glitch-screen {
+    width: 100%;
+}
+
+#stream-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+/* 1つの配信データカード（全画面映画サイズ） */
+.data-card {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    border-bottom: 1px solid #111;
+}
+
+/* ネットからリアルタイムに送られてくる映像・画像 */
+.card-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    filter: brightness(35%) contrast(110%) grayscale(20%);
+    transition: filter 0.5s ease;
+    z-index: 1;
+}
+
+/* テキストコンテンツのオーバーレイ */
+.card-content {
+    position: absolute;
+    left: 60px;
+    bottom: 80px;
+    z-index: 2;
+    max-width: 55vw;
+    text-shadow: 0 0 8px rgba(0, 0, 0, 0.9);
+}
+
+.meta-line {
+    font-size: 12px;
+    color: #00ff66;
+    opacity: 0.6;
+    margin-bottom: 15px;
+    letter-spacing: 2px;
+}
+
+.decay-title {
+    font-size: 42px;
+    font-weight: bold;
+    line-height: 1.2;
+    margin: 0 0 20px 0;
+    word-break: break-all;
+}
+
+.decay-comment {
+    font-size: 16px;
+    color: #bbb;
+    line-height: 1.6;
+    word-break: break-all;
+    margin: 0;
+}
+
+/* 右側の超高速生ログストリーム */
+#raw-log-stream {
+    position: fixed;
+    right: 20px;
+    top: 20px;
+    width: 35vw;
+    height: 95vh;
+    font-size: 10px;
+    color: rgba(0, 255, 102, 0.35);
+    overflow: hidden;
+    line-height: 1.4;
+    word-break: break-all;
+    z-index: 3;
+    pointer-events: none;
+}
+
+/* 走査線オーバーレイ */
+#scanline-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%);
+    background-size: 100% 4px;
+    z-index: 4;
+    pointer-events: none;
+}
+
+/* 人間同士の編集の衝突（Revert）検知時のシステムグリッチ */
+.system-revert-glitch {
+    animation: glitchFlash 0.3s steps(2) infinite;
+}
+
+@keyframes glitchFlash {
+    0% { filter: invert(100%) hue-rotate(90deg); transform: translate(3px, -3px); }
+    50% { filter: contrast(300%) brightness(150%); transform: translate(-3px, 3px); }
+    100% { filter: none; transform: translate(0, 0); }
+}
