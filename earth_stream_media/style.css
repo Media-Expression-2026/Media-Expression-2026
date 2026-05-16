@@ -1,0 +1,116 @@
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #000;
+    color: #00ff66;
+    font-family: monospace;
+    overflow: hidden; /* スクロールバー自体を消し、純粋な映像作品にする */
+    width: 100vw;
+    height: 100vh;
+}
+
+/* 全画面の映像（画像）背景 */
+#video-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-size: cover;
+    background-position: center;
+    transition: filter 0.5s ease, transform 0.5s ease;
+    filter: brightness(40%) contrast(120%) grayscale(30%);
+    z-index: 1;
+}
+
+/* ブラウン管のような走査線・ノイズエフェクト */
+#scanline-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    background-size: 100% 4px, 6px 100%;
+    z-index: 2;
+    pointer-events: none;
+}
+
+/* メインパネル（左側） */
+#main-panel {
+    position: absolute;
+    left: 50px;
+    bottom: 80px;
+    width: 55vw;
+    z-index: 3;
+    text-shadow: 0 0 10px rgba(0, 255, 102, 0.5);
+}
+
+#live-indicator {
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: #fff;
+    margin-bottom: 20px;
+}
+
+/* ライブインジケータの点滅アニメーション */
+.dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    background-color: #ff0055;
+    border-radius: 50%;
+    margin-right: 8px;
+    animation: blink 0.8s infinite alternate;
+}
+
+@keyframes blink {
+    0% { opacity: 0.2; }
+    100% { opacity: 1; }
+}
+
+#data-title {
+    font-size: 48px;
+    color: #fff;
+    margin: 0 0 20px 0;
+    line-height: 1.2;
+}
+
+#data-user {
+    font-size: 18px;
+    color: #00ff66;
+    margin: 0 0 10px 0;
+}
+
+#data-comment {
+    font-size: 16px;
+    color: #888;
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* 生データの滝（右側） */
+#raw-log-stream {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    width: 35vw;
+    height: 95vh;
+    font-size: 11px;
+    color: rgba(0, 255, 102, 0.4);
+    overflow: hidden;
+    line-height: 1.5;
+    word-break: break-all;
+    z-index: 3;
+    pointer-events: none;
+}
+
+/* 受信パルス（データが届いた瞬間に画面全体を一瞬光らせる） */
+.pulse-flash {
+    animation: flashEffect 0.3s ease-out;
+}
+
+@keyframes flashEffect {
+    0% { filter: brightness(150%) contrast(150%); }
+    100% { filter: brightness(40%) contrast(120%) grayscale(30%); }
+}
