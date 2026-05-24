@@ -2,20 +2,22 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Primitive Sync System</title>
     <style>
         body {
             margin: 0; padding: 0; background: #000; color: #00ff88;
             font-family: monospace; display: flex; flex-direction: column;
             justify-content: center; align-items: center; height: 100vh;
-            overflow: hidden; user-select: none;
+            overflow: hidden; user-select: none; -webkit-user-select: none;
         }
         #canvas-view {
             width: 100%; max-width: 480px; height: 360px; border: 2px solid #333;
             background-size: cover; background-position: center;
             display: flex; justify-content: center; align-items: center;
             position: relative; background-color: #050505;
+            /* タッチの遅延をブラウザ側で排除 */
+            touch-action: none; 
         }
         #canvas-view::before {
             content: "[ TAP UPPER: TOGGLE SPEED ]"; position: absolute; top: 10px; font-size: 11px; color: #444;
@@ -30,16 +32,125 @@
 
     <div id="canvas-view"></div>
     <div id="hud">
-        <div id="status">[ READY ]</div>
+        <div id="status">[ CLICK / TAP LOWER TO START ]</div>
     </div>
 
     <script>
-        const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-        const src = isTouch ? 'mobile.js' : 'pc.js';
+        // ==========================================
+        // 1. 素材の置き場所定義
+        // ==========================================
+        const images = [
+            'assets/photo1.jpg',
+            'assets/photo2.jpg',
+            'assets/photo3.jpg'
+        ];
+        const primitiveAudio = new Audio('week5/shot.mp3');
+
+        // ==========================================
+        // 2. 状態管理（フレームカウントベース）
+        // ==========================================
+        let currentIndex = 0;
+        let frameCounter = 0;
+        let isRunning = false; 
+
+        // フレーム数ベースの周期（60コマ、15コマ、3コマ）
+        let intervals =[60, 30, 5]; // フレーム間隔の選択肢
         
-        const script = document.createElement('script');
-        script.src = src;
-        document.body.appendChild(script);
+        let currentIntervalIndex = 0;
+
+        const view = document.getElementById('canvas-view');
+        const statusText = document.getElementById('status');
+
+        // ==========================================
+        // 3. コマ切り替えと音響の同時発火
+        // ==========================================
+        function triggerSync() {
+            view.style.backgroundImage = `url('${images[currentIndex]}')`;
+            
+            primitiveAudio.currentTime = 0;
+            // ユーザー操作直下でのみ実行されるため、スマホのプロテクトを確実に回避
+            primitiveAudio.play().catch(e => console.log("Audio Error:", e));
+
+            currentIndex = (currentIndex + 1) % images.length;
+        }
+
+        // ==========================================
+        // 4. メインループ
+        // ==========================================
+        function systemLoop() {
+            if (!isRunning) return; 
+
+            frameCounter++;
+            let pace = intervals[currentIntervalIndex];
+
+            if (frameCounter % pace === 0) {
+                triggerSync();
+            }
+
+            requestAnimationFrame(systemLoop);
+        }
+
+        // ==========================================
+        // 5. 統合された確実なアクション処理
+        // ==========================================
+        function handleInteraction(clientY) {
+            const rect = view.getBoundingClientRect();
+            const relativeY = clientY - rect.top;
+
+            // 枠外の操作は完全に無視
+            if (relativeY < 0 || relativeY > rect.height) return;
+
+            // 【上半分】：フレームレート変速（60 -> 15 -> 3）
+            if (relativeY < rect.height / 2) {
+                if (isRunning) {
+                    currentIntervalIndex = (currentIntervalIndex + 1) % intervals.length;
+                    statusText.innerText = `[ RUNNING / PACE : ${intervals[currentIntervalIndex]} frames ]`;
+                }
+            } 
+            // 【下半分】：再生 / 一時停止
+            else {
+                if (!isRunning) {
+                    isRunning = true;
+                    statusText.innerText = `[ RUNNING / PACE : ${intervals[currentIntervalIndex]} frames ]`;
+                    
+                    // タップ・クリックされた関数直下で直接鳴らし、ブラウザの音響ロックを強制解除
+                    triggerSync();
+                    frameCounter = 0; 
+                    
+                    systemLoop();  
+                } else {
+                    isRunning = false;
+                    statusText.innerText = `[ PAUSED ]`;
+                }
+            }
+        }
+
+        // ==========================================
+        // 6. スマホとPCのイベントを完全に分離
+        // ==========================================
+        
+        // 📱 スマホ用（ポインターイベントで一元管理）
+        view.addEventListener('pointerdown', (e) => {
+            // マウスからのエミュレートイベントを排除し、純粋なタッチ等のみを通す
+            if (e.pointerType === 'mouse') return; 
+            handleInteraction(e.clientY);
+        });
+
+        // 💻 PC用（マウスクリックイベント）
+        view.addEventListener('click', (e) => {
+            // スマホ環境（タッチデバイス）ではクリックイベントを完全に無視
+            if ('ontouchstart' in window || navigator.maxTouchPoints > 0) return;
+            handleInteraction(e.clientY);
+        });
+
+        // ⌨️ PC用：スペースキーでの変速
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && isRunning) {
+                e.preventDefault();
+                currentIntervalIndex = (currentIntervalIndex + 1) % intervals.length;
+                statusText.innerText = `[ RUNNING / PACE : ${intervals[currentIntervalIndex]} frames ]`;
+            }
+        });
     </script>
 </body>
 </html>
