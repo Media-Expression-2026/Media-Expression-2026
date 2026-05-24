@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Primitive Sync System for Touch</title>
+    <title>Primitive Sync System</title>
     <style>
         body {
             margin: 0; padding: 0; background: #000; color: #00ff88;
@@ -17,7 +17,6 @@
             display: flex; justify-content: center; align-items: center;
             position: relative; background-color: #050505;
         }
-        /* タップ領域の視覚ガイド */
         #canvas-view::before {
             content: "[ TAP UPPER: TOGGLE SPEED ]"; position: absolute; top: 10px; font-size: 11px; color: #444;
         }
@@ -30,11 +29,17 @@
 <body>
 
     <div id="canvas-view"></div>
-
     <div id="hud">
-        <div id="status">[ TAP LOWER SCREEN TO START ]</div>
+        <div id="status">[ READY ]</div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        const src = isTouch ? 'mobile.js' : 'pc.js';
+        
+        const script = document.createElement('script');
+        script.src = src;
+        document.body.appendChild(script);
+    </script>
 </body>
 </html>
