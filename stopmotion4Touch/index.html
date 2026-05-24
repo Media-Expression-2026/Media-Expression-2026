@@ -11,144 +11,115 @@
             justify-content: center; align-items: center; height: 100vh;
             overflow: hidden; user-select: none; -webkit-user-select: none;
         }
+        /* コア・ビューポート */
         #canvas-view {
             width: 100%; max-width: 480px; height: 360px; border: 2px solid #333;
             background-size: cover; background-position: center;
-            display: flex; justify-content: center; align-items: center;
-            position: relative; background-color: #050505;
-            /* タッチの遅延をブラウザ側で排除 */
-            touch-action: none; 
+            display: flex; flex-direction: column; position: relative; background-color: #050505;
         }
-        #canvas-view::before {
-            content: "[ TAP UPPER: TOGGLE SPEED ]"; position: absolute; top: 10px; font-size: 11px; color: #444;
+        /* 物理的な透明ボタンエリア（バグ回避の核心） */
+        .touch-btn {
+            width: 100%; height: 50%; display: flex; justify-content: center; align-items: center;
+            font-size: 11px; color: #444; cursor: pointer; box-sizing: border-box;
+            background: rgba(0,0,0,0.01); /* タッチ反応用の不可視背景 */
         }
-        #canvas-view::after {
-            content: "[ TAP LOWER: PLAY / PAUSE ]"; position: absolute; bottom: 10px; font-size: 11px; color: #444;
-        }
+        #btn-speed { border-bottom: 1px silent #111; } /* 上半分 */
+        #btn-toggle { } /* 下半分 */
+
         #hud { margin-top: 20px; text-align: center; font-size: 14px; height: 20px; }
     </style>
 </head>
 <body>
 
-    <div id="canvas-view"></div>
+    <div id="canvas-view">
+        <div id="btn-speed" class="touch-btn">[ TAP: TOGGLE SPEED ]</div>
+        <div id="btn-toggle" class="touch-btn">[ TAP: PLAY / PAUSE ]</div>
+    </div>
+
     <div id="hud">
-        <div id="status">[ CLICK / TAP LOWER TO START ]</div>
+        <div id="status">[ READY ]</div>
     </div>
 
     <script>
-        // ==========================================
-        // 1. 素材の置き場所定義
-        // ==========================================
-        const images = [
-            'assets/photo1.jpg',
-            'assets/photo2.jpg',
-            'assets/photo3.jpg'
-        ];
+        // 1. 素材の定義
+        const images = ['assets/photo1.jpg', 'assets/photo2.jpg', 'assets/photo3.jpg'];
         const primitiveAudio = new Audio('week5/shot.mp3');
 
-        // ==========================================
-        // 2. 状態管理（フレームカウントベース）
-        // ==========================================
+        // 2. 状態管理
         let currentIndex = 0;
         let frameCounter = 0;
         let isRunning = false; 
-
-        // フレーム数ベースの周期（60コマ、15コマ、3コマ）
         let intervals =[60, 30, 5]; // フレーム間隔の選択肢
-        
         let currentIntervalIndex = 0;
 
         const view = document.getElementById('canvas-view');
         const statusText = document.getElementById('status');
+        const btnSpeed = document.getElementById('btn-speed');
+        const btnToggle = document.getElementById('btn-toggle');
 
-        // ==========================================
-        // 3. コマ切り替えと音響の同時発火
-        // ==========================================
+        statusText.innerText = "[ TAP LOWER AREA TO START ]";
+
+        // 3. 同期発火
         function triggerSync() {
             view.style.backgroundImage = `url('${images[currentIndex]}')`;
-            
             primitiveAudio.currentTime = 0;
-            // ユーザー操作直下でのみ実行されるため、スマホのプロテクトを確実に回避
-            primitiveAudio.play().catch(e => console.log("Audio Error:", e));
-
+            primitiveAudio.play().catch(e => console.log(e));
             currentIndex = (currentIndex + 1) % images.length;
         }
 
-        // ==========================================
         // 4. メインループ
-        // ==========================================
         function systemLoop() {
             if (!isRunning) return; 
-
             frameCounter++;
             let pace = intervals[currentIntervalIndex];
-
             if (frameCounter % pace === 0) {
                 triggerSync();
             }
-
             requestAnimationFrame(systemLoop);
         }
 
-        // ==========================================
-        // 5. 統合された確実なアクション処理
-        // ==========================================
-        function handleInteraction(clientY) {
-            const rect = view.getBoundingClientRect();
-            const relativeY = clientY - rect.top;
-
-            // 枠外の操作は完全に無視
-            if (relativeY < 0 || relativeY > rect.height) return;
-
-            // 【上半分】：フレームレート変速（60 -> 15 -> 3）
-            if (relativeY < rect.height / 2) {
-                if (isRunning) {
-                    currentIntervalIndex = (currentIntervalIndex + 1) % intervals.length;
-                    statusText.innerText = `[ RUNNING / PACE : ${intervals[currentIntervalIndex]} frames ]`;
-                }
-            } 
-            // 【下半分】：再生 / 一時停止
-            else {
-                if (!isRunning) {
-                    isRunning = true;
-                    statusText.innerText = `[ RUNNING / PACE : ${intervals[currentIntervalIndex]} frames ]`;
-                    
-                    // タップ・クリックされた関数直下で直接鳴らし、ブラウザの音響ロックを強制解除
-                    triggerSync();
-                    frameCounter = 0; 
-                    
-                    systemLoop();  
-                } else {
-                    isRunning = false;
-                    statusText.innerText = `[ PAUSED ]`;
-                }
+        // 5. 変速アクション（上半分）
+        function doSpeed(e) {
+            if (e) e.preventDefault();
+            if (isRunning) {
+                currentIntervalIndex = (currentIntervalIndex + 1) % intervals.length;
+                statusText.innerText = `[ RUNNING / PACE : ${intervals[currentIntervalIndex]} frames ]`;
             }
         }
 
-        // ==========================================
-        // 6. スマホとPCのイベントを完全に分離
-        // ==========================================
-        
-        // 📱 スマホ用（ポインターイベントで一元管理）
-        view.addEventListener('pointerdown', (e) => {
-            // マウスからのエミュレートイベントを排除し、純粋なタッチ等のみを通す
-            if (e.pointerType === 'mouse') return; 
-            handleInteraction(e.clientY);
+        // 6. 再生・停止アクション（下半分）
+        function doToggle(e) {
+            if (e) e.preventDefault();
+            if (!isRunning) {
+                isRunning = true;
+                statusText.innerText = `[ RUNNING / PACE : ${intervals[currentIntervalIndex]} frames ]`;
+                triggerSync();
+                frameCounter = 0;
+                systemLoop();  
+            } else {
+                isRunning = false;
+                statusText.innerText = `[ PAUSED ]`;
+            }
+        }
+
+        // 7. イベントバインド（スマホ・PC両対応、競合なし）
+        // スマホ用
+        btnSpeed.addEventListener('touchstart', doSpeed, { passive: false });
+        btnToggle.addEventListener('touchstart', doToggle, { passive: false });
+
+        // PC用クリック
+        btnSpeed.addEventListener('click', (e) => {
+            if (!('ontouchstart' in window)) doSpeed(e);
+        });
+        btnToggle.addEventListener('click', (e) => {
+            if (!('ontouchstart' in window)) doToggle(e);
         });
 
-        // 💻 PC用（マウスクリックイベント）
-        view.addEventListener('click', (e) => {
-            // スマホ環境（タッチデバイス）ではクリックイベントを完全に無視
-            if ('ontouchstart' in window || navigator.maxTouchPoints > 0) return;
-            handleInteraction(e.clientY);
-        });
-
-        // ⌨️ PC用：スペースキーでの変速
+        // PC用スペースキー
         window.addEventListener('keydown', (e) => {
             if (e.code === 'Space' && isRunning) {
                 e.preventDefault();
-                currentIntervalIndex = (currentIntervalIndex + 1) % intervals.length;
-                statusText.innerText = `[ RUNNING / PACE : ${intervals[currentIntervalIndex]} frames ]`;
+                doSpeed();
             }
         });
     </script>
