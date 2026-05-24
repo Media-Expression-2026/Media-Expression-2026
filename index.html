@@ -3,126 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Media Expression 2026 // Archive Gateway</title>
+    <title>Media Expression 2026 - Repository Index</title>
     <style>
         body {
-            background-color: #000;
-            color: #00ff66;
-            font-family: 'Courier New', Courier, monospace;
-            padding: 40px;
-            margin: 0;
-            overflow-x: hidden;
+            margin: 0; padding: 40px; background: #000; color: #00ff88;
+            font-family: monospace; line-height: 1.6;
         }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
+        h1 { border-bottom: 1px solid #333; padding-bottom: 15px; font-size: 22px; letter-spacing: 1px; }
+        .section-title { color: #888; font-size: 12px; margin-top: 30px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; }
+        .directory-list { list-style: none; padding: 0; margin: 0 0 30px 0; }
+        .directory-item {
+            margin-bottom: 10px; padding: 12px; border: 1px solid #222;
+            background: #050505; display: flex; justify-content: space-between; align-items: center;
         }
-        h1 {
-            font-size: 22px;
-            border-bottom: 1px solid rgba(0, 255, 102, 0.3);
-            padding-bottom: 15px;
-            letter-spacing: 2px;
-            margin-bottom: 5px;
-        }
-        .meta-info {
-            font-size: 11px;
-            color: rgba(0, 255, 102, 0.5);
-            margin-bottom: 40px;
-        }
-        .stream-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        .stream-item {
-            margin-bottom: 12px;
-        }
-        .stream-link {
-            color: #00ff66;
-            text-decoration: none;
-            font-size: 15px;
-            display: block;
-            padding: 12px 20px;
-            border: 1px solid rgba(0, 255, 102, 0.15);
-            background: rgba(5, 5, 5, 0.8);
-            transition: all 0.2s ease;
-        }
-        .stream-link:hover {
-            background: rgba(0, 255, 102, 0.1);
-            border: 1px solid #00ff66;
-            box-shadow: 0 0 12px rgba(0, 255, 102, 0.3);
-            transform: translateX(5px);
-        }
-        .status-tag {
-            float: right;
-            font-size: 11px;
-            opacity: 0.7;
-        }
+        .directory-item:hover { border-color: #00ff88; background: #0a110a; }
+        a { color: #00ff88; text-decoration: none; font-size: 15px; display: block; width: 100%; }
+        a:hover { text-decoration: underline; }
+        .meta { color: #666; font-size: 11px; margin-left: 20px; white-space: nowrap; font-style: italic; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>MEDIA EXPRESSION 2026 // ARCHIVE GATEWAY</h1>
-        <div class="meta-info">STATUS: READY // SELECT NODE TO INITIALIZE SUB-SYSTEM</div>
+    <h1>MEDIA EXPRESSION 2026 // REPOSITORY PORTAL</h1>
 
-        <ul class="stream-list">
-            <li class="stream-item">
-                <a class="stream-link" href="./3D%20article/index.html">
-                    > 3D article <span class="status-tag">[ NODE_01 ]</span>
-                </a>
-            </li>
-            <li class="stream-item">
-                <a class="stream-link" href="./3D%20article%202nd/index.html">
-                    > 3D article 2nd <span class="status-tag">[ NODE_02 ]</span>
-                </a>
-            </li>
-            <li class="stream-item">
-                <a class="stream-link" href="./ShemelessLoop/index.html">
-                    > ShemelessLoop <span class="status-tag">[ LOOP_SYS ]</span>
-                </a>
-            </li>
-            <li class="stream-item">
-                <a class="stream-link" href="./earth_stream/index.html">
-                    > earth_stream <span class="status-tag">[ DATA_CORE ]</span>
-                </a>
-            </li>
-            <li class="stream-item">
-                <a class="stream-link" href="./earth_stream_media/index.html">
-                    > earth_stream_media <span class="status-tag">[ MEDIA_AV ]</span>
-                </a>
-            </li>
-            <li class="stream-item">
-                <a class="stream-link" href="./human_entropy_stream/index.html">
-                    > human_entropy_stream <span class="status-tag">[ ENTROPY_2D ]</span>
-                </a>
-            </li>
-            <li class="stream-item">
-                <a class="stream-link" href="./human_entropy_stream3D/index.html">
-                    > human_entropy_stream3D <span class="status-tag">[ ENTROPY_3D ]</span>
-                </a>
-            </li>
-            <li class="stream-item">
-                <a class="stream-link" href="./mars_stream/index.html">
-                    > mars_stream <span class="status-tag">[ EXT_NODE ]</span>
-                </a>
-            </li>
-            <li class="stream-item">
-                <a class="stream-link" href="./particle-app/index.html">
-                    > particle-app <span class="status-tag">[ PTCL_MODULE ]</span>
-                </a>
-            </li>
-            <li class="stream-item">
-                <a class="stream-link" href="./photos_view/index.html">
-                    > photos_view <span class="status-tag">[ IMG_ARCHIVE ]</span>
-                </a>
-            </li>
-            <li class="stream-item">
-                <a class="stream-link" href="./wiki_stream/index.html">
-                    > wiki_stream <span class="status-tag">[ WIKI_CORE ]</span>
-                </a>
-            </li>
-        </ul>
+    <div class="section-title">[ Current Experiments & Systems ]</div>
+    <ul class="directory-list">
+        <li class="directory-item">
+            <a href="stopmotion/index.html">📁 stopmotion /</a>
+            <span class="meta">[ Primitive Sync System (Reset) ]</span>
+        </li>
+        <li class="directory-item">
+            <a href="ShemelessLoop/index.html">📁 ShemelessLoop /</a>
+            <span class="meta">[ Three.js Swarm & Text Decay ]</span>
+        </li>
+        <li class="directory-item">
+            <a href="week5/index.html">📁 week5 /</a>
+            <span class="meta">[ p5.js Core Experiment ]</span>
+        </li>
+        <li class="directory-item">
+            <a href="week4/index.html">📁 week4 /</a>
+            <span class="meta">[ Audio Fragment Loop ]</span>
+        </li>
+        <li class="directory-item">
+            <a href="photos_view/index.html">📁 photos_view /</a>
+            <span class="meta">[ Image Grid Stream ]</span>
+        </li>
+    </ul>
+
+    <div class="section-title">[ Data & Media Stream Systems ]</div>
+    <ul class="directory-list">
+        <li class="directory-item">
+            <a href="wiki_stream/index.html">📁 wiki_stream /</a>
+            <span class="meta">[ Wikipedia Live Interaction ]</span>
+        </li>
+        <li class="directory-item">
+            <a href="earth_stream/index.html">📁 earth_stream /</a>
+            <span class="meta">[ Earth Data Network ]</span>
+        </li>
+        <li class="directory-item">
+            <a href="earth_stream_media/index.html">📁 earth_stream_media /</a>
+            <span class="meta">[ Stream Media Node ]</span>
+        </li>
+        <li class="directory-item">
+            <a href="mars_stream/index.html">📁 mars_stream /</a>
+            <span class="meta">[ Mars Environment Simulation ]</span>
+        </li>
+    </ul>
+
+    <div class="section-title">[ Entropy & Particle Simulations ]</div>
+    <ul class="directory-list">
+        <li class="directory-item">
+            <a href="human_entropy_stream/index.html">📁 human_entropy_stream /</a>
+            <span class="meta">[ Human Disintegration Loop ]</span>
+        </li>
+        <li class="directory-item">
+            <a href="human_entropy_stream3D/index.html">📁 human_entropy_stream3D /</a>
+            <span class="meta">[ 3D Matrix Decay ]</span>
+        </li>
+        <li class="directory-item">
+            <a href="particle-app/index.html">📁 particle-app /</a>
+            <span class="meta">[ Swarm Control Application ]</span>
+        </li>
+        <li class="directory-item">
+            <a href="3D%20article/index.html">📁 3D article /</a>
+            <span class="meta">[ Spatial Typo Node 1 ]</span>
+        </li>
+        <li class="directory-item">
+            <a href="3D%20article%202nd/index.html">📁 3D article 2nd /</a>
+            <span class="meta">[ Spatial Typo Node 2 ]</span>
+        </li>
+    </ul>
+
+    <div class="section-title">[ Static Storage ]</div>
+    <ul class="directory-list">
+        <li class="directory-item">
+            <a href="assets/">📁 assets /</a>
+            <span class="meta">[ Core Media Elements ]</span>
+        </li>
+    </ul>
+
+    <div style="color: #333; font-size: 11px; margin-top: 60px;">
+        // ALL DIRECTORY NODES INDEXED // CONTROL STATUS: ONLINE
     </div>
 
 </body>
