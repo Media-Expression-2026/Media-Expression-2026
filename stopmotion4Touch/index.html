@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Primitive Reset</title>
+    <title>Primitive Sync System for Touch</title>
     <style>
         body {
             margin: 0; padding: 0; background: #000; color: #00ff88;
@@ -12,11 +12,19 @@
             overflow: hidden; user-select: none;
         }
         #canvas-view {
-            width: 480px; height: 360px; border: 2px solid #333;
+            width: 100%; max-width: 480px; height: 360px; border: 2px solid #333;
             background-size: cover; background-position: center;
             display: flex; justify-content: center; align-items: center;
+            position: relative; background-color: #050505;
         }
-        #hud { margin-top: 20px; text-align: center; font-size: 14px; }
+        /* タップ領域の視覚ガイド */
+        #canvas-view::before {
+            content: "[ TAP UPPER: TOGGLE SPEED ]"; position: absolute; top: 10px; font-size: 11px; color: #444;
+        }
+        #canvas-view::after {
+            content: "[ TAP LOWER: PLAY / PAUSE ]"; position: absolute; bottom: 10px; font-size: 11px; color: #444;
+        }
+        #hud { margin-top: 20px; text-align: center; font-size: 14px; height: 20px; }
     </style>
 </head>
 <body>
@@ -24,8 +32,7 @@
     <div id="canvas-view"></div>
 
     <div id="hud">
-        <div id="status">[ CLICK SCREEN TO START ]</div>
-        <div style="margin-top: 5px; color: #888;">SPACE: TOGGLE SPEED</div>
+        <div id="status">[ TAP LOWER SCREEN TO START ]</div>
     </div>
 
     <script src="script.js"></script>
