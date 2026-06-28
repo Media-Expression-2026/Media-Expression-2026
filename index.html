@@ -1,114 +1,400 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Media Expression 2026 - Repository Index</title>
-    <style>
-        body {
-            margin: 0; padding: 40px; background: #000; color: #00ff88;
-            font-family: monospace; line-height: 1.6;
-        }
-        h1 { border-bottom: 1px solid #333; padding-bottom: 15px; font-size: 22px; letter-spacing: 1px; }
-        .section-title { color: #888; font-size: 12px; margin-top: 30px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; }
-        .directory-list { list-style: none; padding: 0; margin: 0 0 30px 0; }
-        .directory-item {
-            margin-bottom: 10px; padding: 12px; border: 1px solid #222;
-            background: #050505; display: flex; justify-content: space-between; align-items: center;
-        }
-        .directory-item:hover { border-color: #00ff88; background: #0a110a; }
-        a { color: #00ff88; text-decoration: none; font-size: 15px; display: block; width: 100%; }
-        a:hover { text-decoration: underline; }
-        .meta { color: #666; font-size: 11px; margin-left: 20px; white-space: nowrap; font-style: italic; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Media Expression 2026</title>
+<style>
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --bg:   #0c0c0c;
+  --bg2:  #141414;
+  --bg3:  #1a1a1a;
+  --line: rgba(255,255,255,0.07);
+  --dim:  rgba(255,255,255,0.22);
+  --mid:  rgba(255,255,255,0.55);
+  --fg:   rgba(255,255,255,0.85);
+  --mono: 'Courier New', monospace;
+  --sans: system-ui, -apple-system, sans-serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--mono);
+  min-height: 100vh;
+}
+
+/* ── header ── */
+header {
+  padding: 48px 48px 36px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+.header-left h1 {
+  font-size: 13px;
+  font-weight: normal;
+  letter-spacing: 0.18em;
+  color: var(--fg);
+  margin-bottom: 8px;
+}
+.header-left .sub {
+  font-size: 10px;
+  color: var(--dim);
+  letter-spacing: 0.14em;
+}
+.header-right {
+  font-size: 9px;
+  color: var(--dim);
+  letter-spacing: 0.12em;
+  text-align: right;
+  line-height: 2;
+}
+.header-right a {
+  color: var(--dim);
+  text-decoration: none;
+}
+.header-right a:hover { color: var(--fg); }
+
+/* ── grid ── */
+main {
+  padding: 40px 48px 80px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 2px;
+}
+
+/* ── card ── */
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  transition: background 0.15s, border-color 0.15s;
+  text-decoration: none;
+  color: inherit;
+}
+.card:hover {
+  background: var(--bg3);
+  border-color: rgba(255,255,255,0.14);
+}
+
+.card-head {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.card-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.18);
+  flex-shrink: 0;
+}
+.card-name {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--fg);
+}
+.card-tag {
+  margin-left: auto;
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  color: var(--dim);
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  text-transform: uppercase;
+}
+
+.card-body {
+  padding: 12px 18px 16px;
+  flex: 1;
+}
+.card-desc {
+  font-size: 10px;
+  color: var(--dim);
+  line-height: 1.8;
+  letter-spacing: 0.04em;
+}
+
+/* ── section label ── */
+.section-label {
+  grid-column: 1 / -1;
+  padding: 28px 0 10px;
+  font-size: 8px;
+  letter-spacing: 0.22em;
+  color: var(--dim);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 2px;
+}
+.section-label:first-child { padding-top: 0; }
+
+/* ── new badge ── */
+.badge-new {
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  color: #86efac;
+  padding: 1px 5px;
+  border: 1px solid rgba(134,239,172,0.3);
+  border-radius: 2px;
+  margin-left: 6px;
+}
+
+/* ── footer ── */
+footer {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  padding: 10px 48px;
+  background: rgba(12,12,12,0.9);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid var(--line);
+  font-size: 9px;
+  color: var(--dim);
+  letter-spacing: 0.12em;
+  display: flex;
+  justify-content: space-between;
+}
+</style>
 </head>
 <body>
 
-    <h1>MEDIA EXPRESSION 2026 // REPOSITORY PORTAL</h1>
+<header>
+  <div class="header-left">
+    <h1>MEDIA-EXPRESSION-2026</h1>
+    <div class="sub">マルチメディア表現II &nbsp;/&nbsp; INS300A &nbsp;/&nbsp; 担当：大谷安宏</div>
+  </div>
+  <div class="header-right">
+    <a href="https://github.com/pb5/Media-Expression-2026" target="_blank">github.com/pb5</a><br>
+    桜美林大学 町田キャンパス
+  </div>
+</header>
 
-    <div class="section-title">[ Current Experiments & Systems ]</div>
-    <ul class="directory-list">
-        <li class="directory-item">
-            <a href="stopmotion4Touch/index.html">📁 stopmotion4Touch /</a>
-            <span class="meta">[ Primitive Sync System (TouchScreen) ]</span>
-        </li>
-        <li class="directory-item">
-            <a href="stopmotion/index.html">📁 stopmotion /</a>
-            <span class="meta">[ Primitive Sync System (Reset) ]</span>
-        </li>
-        <li class="directory-item">
-            <a href="ShemelessLoop/index.html">📁 ShemelessLoop /</a>
-            <span class="meta">[ Three.js Swarm & Text Decay ]</span>
-        </li>
-        <li class="directory-item">
-            <a href="week5/index.html">📁 week5 /</a>
-            <span class="meta">[ p5.js Core Experiment ]</span>
-        </li>
-        <li class="directory-item">
-            <a href="week4/index.html">📁 week4 /</a>
-            <span class="meta">[ Audio Fragment Loop ]</span>
-        </li>
-        <li class="directory-item">
-            <a href="photos_view/index.html">📁 photos_view /</a>
-            <span class="meta">[ Image Grid Stream ]</span>
-        </li>
-    </ul>
+<main>
 
-    <div class="section-title">[ Data & Media Stream Systems ]</div>
-    <ul class="directory-list">
-        <li class="directory-item">
-            <a href="wiki_stream/index.html">📁 wiki_stream /</a>
-            <span class="meta">[ Wikipedia Live Interaction ]</span>
-        </li>
-        <li class="directory-item">
-            <a href="earth_stream/index.html">📁 earth_stream /</a>
-            <span class="meta">[ Earth Data Network ]</span>
-        </li>
-        <li class="directory-item">
-            <a href="earth_stream_media/index.html">📁 earth_stream_media /</a>
-            <span class="meta">[ Stream Media Node ]</span>
-        </li>
-        <li class="directory-item">
-            <a href="mars_stream/index.html">📁 mars_stream /</a>
-            <span class="meta">[ Mars Environment Simulation ]</span>
-        </li>
-    </ul>
+  <!-- ── 最新 ── -->
+  <div class="section-label">最新 — 2026 Spring</div>
 
-    <div class="section-title">[ Entropy & Particle Simulations ]</div>
-    <ul class="directory-list">
-        <li class="directory-item">
-            <a href="human_entropy_stream/index.html">📁 human_entropy_stream /</a>
-            <span class="meta">[ Human Disintegration Loop ]</span>
-        </li>
-        <li class="directory-item">
-            <a href="human_entropy_stream3D/index.html">📁 human_entropy_stream3D /</a>
-            <span class="meta">[ 3D Matrix Decay ]</span>
-        </li>
-        <li class="directory-item">
-            <a href="particle-app/index.html">📁 particle-app /</a>
-            <span class="meta">[ Swarm Control Application ]</span>
-        </li>
-        <li class="directory-item">
-            <a href="3D%20article/index.html">📁 3D article /</a>
-            <span class="meta">[ Spatial Typo Node 1 ]</span>
-        </li>
-        <li class="directory-item">
-            <a href="3D%20article%202nd/index.html">📁 3D article 2nd /</a>
-            <span class="meta">[ Spatial Typo Node 2 ]</span>
-        </li>
-    </ul>
-
-    <div class="section-title">[ Static Storage ]</div>
-    <ul class="directory-list">
-        <li class="directory-item">
-            <a href="assets/">📁 assets /</a>
-            <span class="meta">[ Core Media Elements ]</span>
-        </li>
-    </ul>
-
-    <div style="color: #333; font-size: 11px; margin-top: 60px;">
-        // ALL DIRECTORY NODES INDEXED // CONTROL STATUS: ONLINE
+  <a class="card" href="shader_gallery/">
+    <div class="card-head">
+      <span class="card-dot"></span>
+      <span class="card-name">shader_gallery</span>
+      <span class="card-tag">GLSL</span>
+      <span class="badge-new">NEW</span>
     </div>
+    <div class="card-body">
+      <div class="card-desc">数式が映像になる4ステージのシェーダーギャラリー。マウス操作・PNG/動画保存対応。</div>
+    </div>
+  </a>
 
+  <a class="card" href="shader_launcher/">
+    <div class="card-head">
+      <span class="card-dot"></span>
+      <span class="card-name">shader_launcher</span>
+      <span class="card-tag">p5.js</span>
+      <span class="badge-new">NEW</span>
+    </div>
+    <div class="card-body">
+      <div class="card-desc">Adam Ferrissのシェーダースケッチへのリンク集。UV・マウス・ノイズ・フィードバックなど8カテゴリ。</div>
+    </div>
+  </a>
+
+  <a class="card" href="auto_collage/">
+    <div class="card-head">
+      <span class="card-dot"></span>
+      <span class="card-name">auto_collage</span>
+      <span class="card-tag">p5.js</span>
+      <span class="badge-new">NEW</span>
+    </div>
+    <div class="card-body">
+      <div class="card-desc">マスク切り抜き・コピー・ランダム配置・パターン・描画モード・スリットスキャンの6モードコラージュツール。</div>
+    </div>
+  </a>
+
+  <!-- ── 映像・ストリーム ── -->
+  <div class="section-label">映像・ストリーム</div>
+
+  <a class="card" href="earth_stream/">
+    <div class="card-head">
+      <span class="card-dot"></span>
+      <span class="card-name">earth_stream</span>
+      <span class="card-tag">WebGL</span>
+    </div>
+    <div class="card-body">
+      <div class="card-desc">地球ストリーム映像。</div>
+    </div>
+  </a>
+
+  <a class="card" href="human_entropy_stream/">
+    <div class="card-head">
+      <span class="card-dot"></span>
+      <span class="card-name">human_entropy_stream</span>
+      <span class="card-tag">p5.js</span>
+    </div>
+    <div class="card-body">
+      <div class="card-desc">ヒューマンエントロピーストリーム。</div>
+    </div>
+  </a>
+
+  <a class="card" href="human_entropy_stream3D/">
+    <div class="card-head">
+      <span class="card-dot"></span>
+      <span class="card-name">human_entropy_stream3D</span>
+      <span class="card-tag">WebGL</span>
+    </div>
+    <div class="card-body">
+      <div class="card-desc">3D版ヒューマンエントロピーストリーム。</div>
+    </div>
+  </a>
+
+  <a class="card" href="mars_stream/">
+    <div class="card-head">
+      <span class="card-dot"></span>
+      <span class="card-name">mars_stream</span>
+      <span class="card-tag">WebGL</span>
+    </div>
+    <div class="card-body">
+      <div class="card-desc">火星ストリーム映像。</div>
+    </div>
+  </a>
+
+  <a class="card" href="wiki_stream/">
+    <div class="card-head">
+      <span class="card-dot"></span>
+      <span class="card-name">wiki_stream</span>
+      <span class="card-tag">API</span>
+    </div>
+    <div class="card-body">
+      <div class="card-desc">Wikipediaストリーム。</div>
+    </div>
+  </a>
+
+  <!-- ── 3D・パーティクル ── -->
+  <div class="section-label">3D・パーティクル</div>
+
+  <a class="card" href="3D article/">
+    <div class="card-head">
+      <span class="card-dot"></span>
+      <span class="card-name">3D article</span>
+      <span class="card-tag">Three.js</span>
+    </div>
+    <div class="card-body">
+      <div class="card-desc">3D記事表現。</div>
+    </div>
+  </a>
+
+  <a class="card" href="3D article 2nd/">
+    <div class="card-head">
+      <span class="card-dot"></span>
+      <span class="card-name">3D article 2nd</span>
+      <span class="card-tag">Three.js</span>
+    </div>
+    <div class="card-body">
+      <div class="card-desc">3D記事表現 第2版。</div>
+    </div>
+  </a>
+
+  <a class="card" href="particle-app/">
+    <div class="card-head">
+      <span class="card-dot"></span>
+      <span class="card-name">particle-app</span>
+      <span class="card-tag">WebGL</span>
+    </div>
+    <div class="card-body">
+      <div class="card-desc">パーティクルシミュレーション。</div>
+    </div>
+  </a>
+
+  <!-- ── 映像制作 ── -->
+  <div class="section-label">映像制作</div>
+
+  <a class="card" href="stopmotion/">
+    <div class="card-head">
+      <span class="card-dot"></span>
+      <span class="card-name">stopmotion</span>
+      <span class="card-tag">Camera</span>
+    </div>
+    <div class="card-body">
+      <div class="card-desc">ストップモーション制作ツール。</div>
+    </div>
+  </a>
+
+  <a class="card" href="stopmotion4Touch/">
+    <div class="card-head">
+      <span class="card-dot"></span>
+      <span class="card-name">stopmotion4Touch</span>
+      <span class="card-tag">Touch</span>
+    </div>
+    <div class="card-body">
+      <div class="card-desc">タッチデバイス向けストップモーション。</div>
+    </div>
+  </a>
+
+  <a class="card" href="ShemelessLoop/">
+    <div class="card-head">
+      <span class="card-dot"></span>
+      <span class="card-name">ShemelessLoop</span>
+      <span class="card-tag">Loop</span>
+    </div>
+    <div class="card-body">
+      <div class="card-desc">シームレスループ映像。</div>
+    </div>
+  </a>
+
+  <!-- ── 写真・ビュー ── -->
+  <div class="section-label">写真・ビュー</div>
+
+  <a class="card" href="photos_view/">
+    <div class="card-head">
+      <span class="card-dot"></span>
+      <span class="card-name">photos_view</span>
+      <span class="card-tag">Gallery</span>
+    </div>
+    <div class="card-body">
+      <div class="card-desc">フォトビューア。</div>
+    </div>
+  </a>
+
+  <!-- ── 週別課題 ── -->
+  <div class="section-label">週別課題</div>
+
+  <a class="card" href="week4/">
+    <div class="card-head">
+      <span class="card-dot"></span>
+      <span class="card-name">week4</span>
+      <span class="card-tag">課題</span>
+    </div>
+    <div class="card-body">
+      <div class="card-desc">Week 4 課題。</div>
+    </div>
+  </a>
+
+  <a class="card" href="week5/">
+    <div class="card-head">
+      <span class="card-dot"></span>
+      <span class="card-name">week5</span>
+      <span class="card-tag">課題</span>
+    </div>
+    <div class="card-body">
+      <div class="card-desc">Week 5 課題。</div>
+    </div>
+  </a>
+
+</main>
+
+<footer>
+  <span>Media-Expression-2026 / INS300A / 桜美林大学</span>
+  <span id="ts"></span>
+</footer>
+
+<script>
+document.getElementById('ts').textContent =
+  new Date().toLocaleDateString('ja-JP', { year:'numeric', month:'long', day:'numeric' });
+</script>
 </body>
 </html>
