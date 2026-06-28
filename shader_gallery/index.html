@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Shader Gallery — マルチメディア表現II</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0a0a; color:#fff; font-family:'Courier New', monospace; overflow:hidden; }
+
+#canvas-wrap {
+  position:fixed; inset:0;
+}
+canvas { display:block; width:100%; height:100%; }
+
+/* ── left panel ── */
+#panel {
+  position:fixed; top:0; left:0; bottom:0;
+  width:300px;
+  background:rgba(0,0,0,0.75);
+  backdrop-filter:blur(12px);
+  border-right:1px solid rgba(255,255,255,0.07);
+  display:flex; flex-direction:column;
+  padding:20px 0;
+  z-index:10;
+}
+
+#panel-title {
+  padding:0 20px 16px;
+  border-bottom:1px solid rgba(255,255,255,0.07);
+}
+#panel-title .eyebrow {
+  font-size:9px; letter-spacing:0.2em;
+  color:rgba(255,255,255,0.3); text-transform:uppercase;
+  margin-bottom:6px;
+}
+#panel-title h1 {
+  font-size:13px; font-weight:normal;
+  color:rgba(255,255,255,0.85); letter-spacing:0.05em;
+}
+
+/* stage list */
+#stages {
+  padding:16px 0;
+  border-bottom:1px solid rgba(255,255,255,0.07);
+}
+.stage-btn {
+  display:flex; align-items:center; gap:12px;
+  padding:10px 20px; cursor:pointer;
+  border:none; background:none; color:inherit;
+  width:100%; text-align:left;
+  transition:background 0.15s;
+}
+.stage-btn:hover { background:rgba(255,255,255,0.04); }
+.stage-btn.active { background:rgba(255,255,255,0.08); }
+.stage-num {
+  width:22px; height:22px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:9px; letter-spacing:0.1em;
+  background:rgba(255,255,255,0.08);
+  color:rgba(255,255,255,0.4);
+  flex-shrink:0;
+  transition:background 0.15s, color 0.15s;
+}
+.stage-btn.active .stage-num {
+  background:#fff; color:#000;
+}
+.stage-label { font-size:11px; letter-spacing:0.08em; color:rgba(255,255,255,0.6); }
+.stage-btn.active .stage-label { color:#fff; }
+.stage-sub { font-size:9px; color:rgba(255,255,255,0.25); letter-spacing:0.05em; margin-top:2px; }
+
+/* code block */
+#code-area {
+  flex:1; overflow-y:auto; padding:16px 20px;
+  scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.1) transparent;
+}
+#code-label {
+  font-size:9px; letter-spacing:0.15em;
+  color:rgba(255,255,255,0.25); text-transform:uppercase;
+  margin-bottom:10px;
+}
+#code-block {
+  font-size:10.5px; line-height:1.75;
+  color:rgba(255,255,255,0.55);
+  white-space:pre;
+}
+#code-block .kw  { color:#7dd3fc; }  /* keywords */
+#code-block .fn  { color:#86efac; }  /* functions */
+#code-block .num { color:#fbbf24; }  /* numbers */
+#code-block .cm  { color:rgba(255,255,255,0.25); font-style:italic; }
+#code-block .hi  { color:#f9a8d4; }  /* highlight: the key line */
+
+/* bottom hint */
+#hint {
+  padding:14px 20px 0;
+  border-top:1px solid rgba(255,255,255,0.07);
+  font-size:9px; color:rgba(255,255,255,0.2);
+  line-height:2; letter-spacing:0.08em;
+}
+
+/* top-right controls */
+#controls {
+  position:fixed; top:20px; right:20px;
+  display:flex; flex-direction:column; gap:10px;
+  z-index:10;
+}
+.ctrl {
+  display:flex; flex-direction:column; gap:4px;
+  background:rgba(0,0,0,0.6);
+  backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,0.07);
+  border-radius:6px;
+  padding:10px 12px;
+}
+.ctrl-label {
+  font-size:8px; letter-spacing:0.15em;
+  color:rgba(255,255,255,0.3); text-transform:uppercase;
+}
+.ctrl-val {
+  font-size:12px; color:rgba(255,255,255,0.8);
+}
+input[type=range] {
+  -webkit-appearance:none;
+  width:120px; height:2px;
+  background:rgba(255,255,255,0.15);
+  outline:none; cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance:none;
+  width:9px; height:9px; border-radius:50%;
+  background:#fff; cursor:pointer;
+}
+
+/* flash + saved */
+#flash { position:fixed; inset:0; background:#fff; opacity:0; pointer-events:none; transition:opacity 0.06s; z-index:50; }
+#saved { position:fixed; bottom:30px; right:20px; font-size:9px; letter-spacing:0.2em; color:rgba(255,255,255,0.5); opacity:0; transition:opacity 0.3s; z-index:50; }
+
+/* recording */
+#rec-btn {
+  position:fixed; bottom:24px; left:320px;
+  display:flex; align-items:center; gap:8px;
+  background:rgba(0,0,0,0.7); backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,0.12);
+  border-radius:20px; padding:8px 16px;
+  cursor:pointer; color:#fff; font-family:'Courier New',monospace;
+  font-size:10px; letter-spacing:0.15em;
+  z-index:20; transition:border-color 0.2s;
+}
+#rec-btn:hover { border-color:rgba(255,255,255,0.3); }
+#rec-btn.recording { border-color:#ef4444; }
+#rec-dot {
+  width:8px; height:8px; border-radius:50%;
+  background:rgba(255,255,255,0.3);
+  transition:background 0.2s;
+}
+#rec-btn.recording #rec-dot {
+  background:#ef4444;
+  animation:blink 1s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+#rec-timer { color:rgba(255,255,255,0.5); min-width:28px; }
+</style>
+</head>
+<body>
+
+<div id="canvas-wrap"><canvas id="c"></canvas></div>
+<div id="flash"></div>
+<div id="saved">SAVED</div>
+<button id="rec-btn">
+  <span id="rec-dot"></span>
+  <span id="rec-label">REC</span>
+  <span id="rec-timer"></span>
+</button>
+
+<!-- ── LEFT PANEL ── -->
+<div id="panel">
+  <div id="panel-title">
+    <div class="eyebrow">Shader Gallery</div>
+    <h1>数式が映像になる</h1>
+  </div>
+
+  <div id="stages">
+    <button class="stage-btn active" data-i="0">
+      <span class="stage-num">1</span>
+      <div>
+        <div class="stage-label">UV → 色</div>
+        <div class="stage-sub">座標がそのまま色になる</div>
+      </div>
+    </button>
+    <button class="stage-btn" data-i="1">
+      <span class="stage-num">2</span>
+      <div>
+        <div class="stage-label">sin 波</div>
+        <div class="stage-sub">三角関数で縞模様</div>
+      </div>
+    </button>
+    <button class="stage-btn" data-i="2">
+      <span class="stage-num">3</span>
+      <div>
+        <div class="stage-label">ノイズ・歪み</div>
+        <div class="stage-sub">座標を数式で曲げる</div>
+      </div>
+    </button>
+    <button class="stage-btn" data-i="3">
+      <span class="stage-num">4</span>
+      <div>
+        <div class="stage-label">サイマティクス</div>
+        <div class="stage-sub">2波の干渉＝クラドニ図形</div>
+      </div>
+    </button>
+  </div>
+
+  <div id="code-area">
+    <div id="code-label">FRAGMENT SHADER — キーとなる1行</div>
+    <div id="code-block"></div>
+  </div>
+
+  <div id="hint">
+    マウス移動 → 変化<br>
+    ← → キー　→ ステージ切替<br>
+    スペース　→ PNG保存<br>
+    V　→ 動画録画 開始 / 停止<br>
+    R　→ ランダム
+  </div>
+</div>
+
+<!-- ── RIGHT CONTROLS ── -->
+<div id="controls">
+  <div class="ctrl">
+    <span class="ctrl-label">強度</span>
+    <input type="range" id="s-intensity" min="0.1" max="5" step="0.05" value="1.5">
+    <span class="ctrl-val" id="v-intensity">1.50</span>
+  </div>
+  <div class="ctrl">
+    <span class="ctrl-label">速度</span>
+    <input type="range" id="s-speed" min="0" max="3" step="0.05" value="0.6">
+    <span class="ctrl-val" id="v-speed">0.60</span>
+  </div>
+  <div class="ctrl">
+    <span class="ctrl-label">色相</span>
+    <input type="range" id="s-hue" min="0" max="1" step="0.01" value="0.55">
+    <span class="ctrl-val" id="v-hue">0.55</span>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+//  GLSL stages
+// ─────────────────────────────────────────────────────────────────────────────
+const VS = `
+attribute vec2 a_pos;
+void main(){ gl_Position = vec4(a_pos,0.,1.); }
+`;
+
+// shared header injected into every FS
+const FS_HEAD = `
+precision highp float;
+uniform vec2  u_res;
+uniform float u_time;
+uniform vec2  u_mouse;
+uniform float u_intensity;
+uniform float u_hue;
+
+#define PI 3.14159265
+
+vec3 hsv(float h,float s,float v){
+  vec4 K=vec4(1.,2./3.,1./3.,3.);
+  vec3 p=abs(fract(h+K.xyz)*6.-K.www);
+  return v*mix(K.xxx,clamp(p-K.xxx,0.,1.),s);
+}
+`;
+
+const STAGES = [
+  // ── 0: UV → color ────────────────────────────────────────────────────────
+  {
+    frag: FS_HEAD + `
+void main(){
+  // uv: 画面上の位置を 0〜1 に正規化した座標
+  vec2 uv = gl_FragCoord.xy / u_res;
+
+  // マウスで色相をずらす
+  float mx = u_mouse.x;
+
+  // 【キーライン】uv.x を R に、uv.y を G に、マウスを B に割り当てる
+  vec3 col = vec3(uv.x, uv.y, mx);
+
+  gl_FragColor = vec4(col, 1.0);
+}`,
+    code: [
+      {t:'cm', s:'// uv: 画面上の位置を 0〜1 に正規化'},
+      {t:'n',  s:'vec2 uv = gl_FragCoord.xy / u_res;'},
+      {t:'n',  s:''},
+      {t:'cm', s:'// 【キーライン】'},
+      {t:'cm', s:'// x座標 → 赤  y座標 → 緑  マウス → 青'},
+      {t:'hi', s:'vec3 col = vec3(uv.x, uv.y, mx);'},
+    ],
+  },
+
+  // ── 1: sin wave ──────────────────────────────────────────────────────────
+  {
+    frag: FS_HEAD + `
+void main(){
+  vec2 uv = (gl_FragCoord.xy - u_res*.5) / min(u_res.x,u_res.y);
+  float freq = u_intensity * 8.0 + u_mouse.x * 12.0;
+  float t = u_time;
+
+  // 【キーライン】sin波を重ねる
+  float wave = sin(uv.x * freq * PI + t)
+             * sin(uv.y * freq * PI * u_mouse.y * 2.0 + t * 0.7);
+
+  float brightness = wave * 0.5 + 0.5;
+  vec3 col = hsv(u_hue + wave * 0.1, 0.8, brightness);
+
+  gl_FragColor = vec4(col, 1.0);
+}`,
+    code: [
+      {t:'cm', s:'// 周波数をマウスXで変化'},
+      {t:'n',  s:'float freq = intensity * 8.0'},
+      {t:'n',  s:'           + mouse.x * 12.0;'},
+      {t:'n',  s:''},
+      {t:'cm', s:'// 【キーライン】2方向のsin波を掛け合わせる'},
+      {t:'hi', s:'float wave = sin(uv.x * freq * PI + t)'},
+      {t:'hi', s:'           * sin(uv.y * freq * PI + t);'},
+      {t:'n',  s:''},
+      {t:'cm', s:'// -1〜1 を 0〜1 に変換して明るさに'},
+      {t:'n',  s:'float b = wave * 0.5 + 0.5;'},
+    ],
+  },
+
+  // ── 2: noise / distortion ────────────────────────────────────────────────
+  {
+    frag: FS_HEAD + `
+// 擬似乱数（ハッシュ関数）
+float hash(vec2 p){
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+// バイリニア補間ノイズ
+float noise(vec2 p){
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  vec2 u = f*f*(3.-2.*f);
+  return mix(
+    mix(hash(i),         hash(i+vec2(1,0)), u.x),
+    mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),u.x), u.y);
+}
+
+void main(){
+  vec2 uv = (gl_FragCoord.xy - u_res*.5) / min(u_res.x,u_res.y);
+  float t = u_time * 0.4;
+  float sc = u_intensity * 3.0;
+
+  // 【キーライン】ノイズで座標を歪ませてからノイズを再評価
+  vec2 warp = vec2(
+    noise(uv * sc + vec2(t, t*0.7)),
+    noise(uv * sc + vec2(t*1.3 + 5.2, t*0.9 + 1.3))
+  );
+  float n = noise(uv * sc + warp * u_mouse.x * 2.0 + t);
+
+  vec3 col = hsv(u_hue + n * 0.3 + u_mouse.y * 0.4, 0.7, n);
+  gl_FragColor = vec4(col, 1.0);
+}`,
+    code: [
+      {t:'cm', s:'// 擬似乱数（ハッシュ関数）'},
+      {t:'n',  s:'float hash(vec2 p){'},
+      {t:'n',  s:'  return fract(sin(dot(p,'},
+      {t:'n',  s:'    vec2(127.1,311.7)))*43758.5);'},
+      {t:'n',  s:'}'},
+      {t:'n',  s:''},
+      {t:'cm', s:'// 【キーライン】座標をノイズで歪ませる'},
+      {t:'hi', s:'vec2 warp = vec2('},
+      {t:'hi', s:'  noise(uv + vec2(t, t*0.7)),'},
+      {t:'hi', s:'  noise(uv + vec2(t+5.2, t+1.3))'},
+      {t:'hi', s:');'},
+      {t:'cm', s:'// 歪んだ座標で再びノイズ評価 → 有機的な形'},
+      {t:'n',  s:'float n = noise(uv + warp * mx);'},
+    ],
+  },
+
+  // ── 3: cymatics ──────────────────────────────────────────────────────────
+  {
+    frag: FS_HEAD + `
+vec2 rot(vec2 p, float a){
+  return vec2(p.x*cos(a)-p.y*sin(a), p.x*sin(a)+p.y*cos(a));
+}
+void main(){
+  vec2 uv = (gl_FragCoord.xy - u_res*.5) / min(u_res.x,u_res.y);
+  uv = rot(uv, u_time * 0.05);
+  uv *= u_intensity;
+
+  float mx = u_mouse.x * 2.0 - 1.0;
+  float my = u_mouse.y * 2.0 - 1.0;
+  float n = 6.0 + mx * 4.0;   // 周波数 n
+  float m = 8.0 + my * 4.0;   // 周波数 m
+  float t = u_time;
+
+  // 【キーライン】クラドニ方程式: sin(n·x)·sin(m·y) + sin(m·x)·sin(n·y)
+  float wave = sin(n * PI * uv.x + t) * sin(m * PI * uv.y)
+             + sin(m * PI * uv.x - t*0.7) * sin(n * PI * uv.y + t*0.3);
+
+  // ノード面（wave≈0）を光らせる
+  float nodal = 1.0 - smoothstep(0.0, 0.18, abs(wave));
+  float glow  = pow(nodal, 2.5);
+
+  vec3 bg  = hsv(u_hue+0.5, 0.4, 0.03);
+  vec3 col = mix(bg, hsv(u_hue + wave*0.12, 0.75, glow), glow);
+  col *= 1.0 - smoothstep(0.5, 1.2, length(uv / u_intensity));
+
+  gl_FragColor = vec4(col, 1.0);
+}`,
+    code: [
+      {t:'cm', s:'// マウスXY → 周波数 n, m を変化'},
+      {t:'n',  s:'float n = 6.0 + mouse.x * 4.0;'},
+      {t:'n',  s:'float m = 8.0 + mouse.y * 4.0;'},
+      {t:'n',  s:''},
+      {t:'cm', s:'// 【キーライン】クラドニ方程式'},
+      {t:'cm', s:'// 砂がノード面（=0の線）に集まる現象を再現'},
+      {t:'hi', s:'float wave ='},
+      {t:'hi', s:'  sin(n*PI*x+t) * sin(m*PI*y)'},
+      {t:'hi', s:'+ sin(m*PI*x-t) * sin(n*PI*y);'},
+      {t:'n',  s:''},
+      {t:'cm', s:'// wave≈0 の部分だけ光らせる'},
+      {t:'n',  s:'float nodal = 1.0 - smoothstep('},
+      {t:'n',  s:'  0.0, 0.18, abs(wave));'},
+    ],
+  },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  WebGL init
+// ─────────────────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('c');
+const gl = canvas.getContext('webgl', { preserveDrawingBuffer: true })
+        || canvas.getContext('experimental-webgl', { preserveDrawingBuffer: true });
+
+function mkShader(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
+    console.error(gl.getShaderInfoLog(s));
+  return s;
+}
+
+const buf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+
+let prog = null;
+let uLocs = {};
+
+function buildProg(stageIdx) {
+  if (prog) gl.deleteProgram(prog);
+  const fs = STAGES[stageIdx].frag;
+  prog = gl.createProgram();
+  gl.attachShader(prog, mkShader(gl.VERTEX_SHADER, VS));
+  gl.attachShader(prog, mkShader(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(prog);
+  gl.useProgram(prog);
+
+  const loc = gl.getAttribLocation(prog, 'a_pos');
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+  uLocs = {
+    res:       gl.getUniformLocation(prog, 'u_res'),
+    time:      gl.getUniformLocation(prog, 'u_time'),
+    mouse:     gl.getUniformLocation(prog, 'u_mouse'),
+    intensity: gl.getUniformLocation(prog, 'u_intensity'),
+    hue:       gl.getUniformLocation(prog, 'u_hue'),
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  State
+// ─────────────────────────────────────────────────────────────────────────────
+let currentStage = 0;
+let mouse = [0.5, 0.5];
+let params = { intensity: 1.5, speed: 0.6, hue: 0.55 };
+const startTime = performance.now();
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Code panel rendering
+// ─────────────────────────────────────────────────────────────────────────────
+const TYPE_MAP = { cm:'cm', n:'', hi:'hi', kw:'kw', fn:'fn', num:'num' };
+function renderCode(stageIdx) {
+  const lines = STAGES[stageIdx].code;
+  const el = document.getElementById('code-block');
+  el.innerHTML = lines.map(l => {
+    const cls = TYPE_MAP[l.t] || '';
+    const escaped = l.s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return cls ? `<span class="${cls}">${escaped}</span>` : escaped;
+  }).join('\n');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Stage switch
+// ─────────────────────────────────────────────────────────────────────────────
+function goStage(i) {
+  currentStage = (i + STAGES.length) % STAGES.length;
+  buildProg(currentStage);
+  renderCode(currentStage);
+  document.querySelectorAll('.stage-btn').forEach((b,j) => {
+    b.classList.toggle('active', j === currentStage);
+  });
+}
+goStage(0);
+
+document.querySelectorAll('.stage-btn').forEach(b => {
+  b.addEventListener('click', () => goStage(+b.dataset.i));
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Sliders
+// ─────────────────────────────────────────────────────────────────────────────
+function bindSlider(id, key) {
+  const sl = document.getElementById('s-' + id);
+  const vl = document.getElementById('v-' + id);
+  sl.addEventListener('input', () => {
+    params[key] = parseFloat(sl.value);
+    vl.textContent = params[key].toFixed(2);
+  });
+}
+bindSlider('intensity', 'intensity');
+bindSlider('speed', 'speed');
+bindSlider('hue', 'hue');
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Input
+// ─────────────────────────────────────────────────────────────────────────────
+window.addEventListener('mousemove', e => {
+  mouse = [e.clientX / window.innerWidth, 1 - e.clientY / window.innerHeight];
+});
+
+window.addEventListener('keydown', e => {
+  if (e.code === 'Space')     { e.preventDefault(); saveFrame(); }
+  if (e.key  === 'ArrowRight') goStage(currentStage + 1);
+  if (e.key  === 'ArrowLeft')  goStage(currentStage - 1);
+  if (e.key  === 'r' || e.key === 'R') randomize();
+  if (e.key  === 'v' || e.key === 'V') toggleRecord();
+});
+
+function randomize() {
+  const r = (a,b) => a + Math.random()*(b-a);
+  const set = (id, key, v) => {
+    params[key] = v;
+    document.getElementById('s-'+id).value = v;
+    document.getElementById('v-'+id).textContent = v.toFixed(2);
+  };
+  set('intensity','intensity', r(0.5, 4.0));
+  set('speed',    'speed',     r(0.1, 2.5));
+  set('hue',      'hue',       r(0, 1));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Video Recording (MediaRecorder API)
+// ─────────────────────────────────────────────────────────────────────────────
+let mediaRecorder = null;
+let recChunks = [];
+let recStart = null;
+let recTimerInterval = null;
+
+const recBtn   = document.getElementById('rec-btn');
+const recLabel = document.getElementById('rec-label');
+const recTimer = document.getElementById('rec-timer');
+
+recBtn.addEventListener('click', toggleRecord);
+
+function toggleRecord() {
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    stopRecord();
+  } else {
+    startRecord();
+  }
+}
+
+function startRecord() {
+  // prefer VP9 webm, fallback to default
+  const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+    ? 'video/webm;codecs=vp9'
+    : MediaRecorder.isTypeSupported('video/webm')
+    ? 'video/webm'
+    : '';
+
+  const stream = canvas.captureStream(30); // 30fps
+  mediaRecorder = mimeType
+    ? new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 8_000_000 })
+    : new MediaRecorder(stream, { videoBitsPerSecond: 8_000_000 });
+
+  recChunks = [];
+  mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recChunks.push(e.data); };
+  mediaRecorder.onstop = saveVideo;
+  mediaRecorder.start(100); // collect every 100ms
+
+  recStart = Date.now();
+  recBtn.classList.add('recording');
+  recLabel.textContent = 'STOP';
+
+  recTimerInterval = setInterval(() => {
+    const s = Math.floor((Date.now() - recStart) / 1000);
+    const mm = String(Math.floor(s/60)).padStart(2,'0');
+    const ss = String(s % 60).padStart(2,'0');
+    recTimer.textContent = `${mm}:${ss}`;
+  }, 500);
+}
+
+function stopRecord() {
+  if (!mediaRecorder) return;
+  mediaRecorder.stop();
+  clearInterval(recTimerInterval);
+  recBtn.classList.remove('recording');
+  recLabel.textContent = 'REC';
+  recTimer.textContent = '';
+}
+
+function saveVideo() {
+  const ext  = (mediaRecorder.mimeType || 'video/webm').includes('mp4') ? 'mp4' : 'webm';
+  const blob = new Blob(recChunks, { type: mediaRecorder.mimeType || 'video/webm' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const ts   = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+  a.download = `shader_s${currentStage+1}_${ts}.${ext}`;
+  a.href = url;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  const s = document.getElementById('saved');
+  s.textContent = 'VIDEO SAVED';
+  s.style.opacity = '1';
+  setTimeout(() => { s.style.opacity='0'; s.textContent='SAVED'; }, 2000);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Screenshot — WebGL readPixels → 2D canvas → PNG
+// ─────────────────────────────────────────────────────────────────────────────
+function saveFrame() {
+  // flash
+  const f = document.getElementById('flash');
+  f.style.opacity = '0.5';
+  setTimeout(() => f.style.opacity = '0', 80);
+
+  // read pixels from WebGL framebuffer (Y-flipped)
+  const w = canvas.width, h = canvas.height;
+  const pixels = new Uint8Array(w * h * 4);
+  gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+
+  // draw onto a 2D canvas (flip Y)
+  const tmp = document.createElement('canvas');
+  tmp.width = w; tmp.height = h;
+  const ctx = tmp.getContext('2d');
+  const imgData = ctx.createImageData(w, h);
+  for (let y = 0; y < h; y++) {
+    const src = (h - 1 - y) * w * 4;
+    imgData.data.set(pixels.subarray(src, src + w * 4), y * w * 4);
+  }
+  ctx.putImageData(imgData, 0, 0);
+
+  tmp.toBlob(blob => {
+    const a = document.createElement('a');
+    const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    a.download = `shader_s${currentStage + 1}_${ts}.png`;
+    a.href = URL.createObjectURL(blob);
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }, 'image/png');
+
+  const s = document.getElementById('saved');
+  s.textContent = 'PNG SAVED';
+  s.style.opacity = '1';
+  setTimeout(() => { s.style.opacity = '0'; s.textContent = 'SAVED'; }, 1500);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Resize
+// ─────────────────────────────────────────────────────────────────────────────
+function resize() {
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+  gl.viewport(0,0,canvas.width,canvas.height);
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Render loop
+// ─────────────────────────────────────────────────────────────────────────────
+function render(now) {
+  const t = (now - startTime) / 1000 * params.speed;
+  gl.uniform2f(uLocs.res, canvas.width, canvas.height);
+  gl.uniform1f(uLocs.time, t);
+  gl.uniform2f(uLocs.mouse, mouse[0], mouse[1]);
+  gl.uniform1f(uLocs.intensity, params.intensity);
+  gl.uniform1f(uLocs.hue, params.hue);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  requestAnimationFrame(render);
+}
+requestAnimationFrame(render);
+</script>
+</body>
+</html>

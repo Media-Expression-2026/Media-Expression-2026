@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Shader入門ランチャー — マルチメディア表現II</title>
+<style>
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --bg:    #0e0e0e;
+  --bg2:   #161616;
+  --bg3:   #1e1e1e;
+  --line:  rgba(255,255,255,0.07);
+  --mid:   rgba(255,255,255,0.35);
+  --dim:   rgba(255,255,255,0.18);
+  --white: rgba(255,255,255,0.88);
+  --mono:  'Courier New', monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--white);
+  font-family: var(--mono);
+  min-height: 100vh;
+}
+
+/* ── header ── */
+header {
+  border-bottom: 1px solid var(--line);
+  padding: 28px 40px 24px;
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+}
+header h1 {
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  font-weight: normal;
+}
+header .sub {
+  font-size: 10px;
+  color: var(--dim);
+  letter-spacing: 0.15em;
+}
+header .credit {
+  margin-left: auto;
+  font-size: 9px;
+  color: var(--dim);
+  letter-spacing: 0.1em;
+  line-height: 1.8;
+  text-align: right;
+}
+header .credit a {
+  color: var(--mid);
+  text-decoration: none;
+}
+header .credit a:hover { color: var(--white); }
+
+/* ── intro strip ── */
+.intro {
+  padding: 18px 40px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  background: var(--bg2);
+}
+.intro-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 10px;
+  color: var(--mid);
+  letter-spacing: 0.1em;
+}
+.intro-step .n {
+  width: 20px; height: 20px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px;
+  color: var(--dim);
+  flex-shrink: 0;
+}
+.intro-arrow { color: var(--dim); font-size: 10px; }
+
+/* ── layout ── */
+main {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  min-height: calc(100vh - 130px);
+}
+
+/* ── sidebar ── */
+nav {
+  border-right: 1px solid var(--line);
+  padding: 24px 0;
+  position: sticky;
+  top: 0;
+  height: calc(100vh - 130px);
+  overflow-y: auto;
+}
+.nav-section {
+  padding: 0 0 8px;
+  margin-bottom: 4px;
+}
+.nav-label {
+  padding: 4px 20px 8px;
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  color: var(--dim);
+  text-transform: uppercase;
+}
+.nav-item {
+  display: block;
+  padding: 7px 20px;
+  font-size: 10px;
+  color: var(--mid);
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  transition: color 0.1s, background 0.1s;
+  border-left: 2px solid transparent;
+}
+.nav-item:hover { color: var(--white); background: rgba(255,255,255,0.03); }
+.nav-item.active { color: var(--white); border-left-color: rgba(255,255,255,0.4); }
+
+/* ── content ── */
+.content {
+  padding: 36px 40px;
+  max-width: 860px;
+}
+
+.section { display: none; }
+.section.active { display: block; }
+
+.section-eyebrow {
+  font-size: 8px;
+  letter-spacing: 0.22em;
+  color: var(--dim);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.section-title {
+  font-size: 18px;
+  font-weight: normal;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+  color: var(--white);
+}
+.section-desc {
+  font-size: 11px;
+  color: var(--mid);
+  line-height: 1.9;
+  letter-spacing: 0.04em;
+  margin-bottom: 28px;
+  max-width: 560px;
+}
+
+/* ── key concept box ── */
+.concept {
+  background: var(--bg3);
+  border: 1px solid var(--line);
+  border-left: 3px solid rgba(255,255,255,0.25);
+  border-radius: 4px;
+  padding: 14px 18px;
+  margin-bottom: 28px;
+  font-size: 10px;
+  line-height: 1.9;
+  color: var(--mid);
+}
+.concept .kw { color: #7dd3fc; }
+.concept .hi { color: #f9a8d4; }
+.concept .cm { color: var(--dim); font-style: italic; }
+
+/* ── sketch cards ── */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+  transition: border-color 0.15s, transform 0.1s;
+  cursor: pointer;
+}
+.card:hover {
+  border-color: rgba(255,255,255,0.18);
+  transform: translateY(-1px);
+}
+.card a {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.card-tag {
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--line);
+}
+.tag-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.tag-text {
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  color: var(--dim);
+  text-transform: uppercase;
+}
+
+.card-body { padding: 14px; }
+.card-title {
+  font-size: 11.5px;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+  color: var(--white);
+}
+.card-desc {
+  font-size: 9.5px;
+  color: var(--dim);
+  line-height: 1.7;
+  letter-spacing: 0.03em;
+}
+.card-what {
+  margin-top: 10px;
+  font-size: 9px;
+  color: var(--mid);
+  letter-spacing: 0.06em;
+}
+.card-what span {
+  display: inline-block;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 2px 6px;
+  margin-top: 4px;
+}
+
+/* ── task box ── */
+.task-box {
+  margin-top: 30px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 18px 20px;
+}
+.task-box h3 {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--dim);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.task-item {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 10px;
+  color: var(--mid);
+  line-height: 1.7;
+  letter-spacing: 0.04em;
+}
+.task-item::before {
+  content: '→';
+  color: var(--dim);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ── divider ── */
+.divider {
+  height: 1px;
+  background: var(--line);
+  margin: 28px 0;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Shader 入門ランチャー</h1>
+  <span class="sub">マルチメディア表現II / INS300A</span>
+  <div class="credit">
+    スケッチ制作：<a href="https://github.com/aferriss" target="_blank">Adam Ferriss</a><br>
+    リンク集：大谷安宏
+  </div>
+</header>
+
+<div class="intro">
+  <div class="intro-step"><span class="n">1</span>スケッチを開く</div>
+  <span class="intro-arrow">→</span>
+  <div class="intro-step"><span class="n">2</span>画面を触ってみる</div>
+  <span class="intro-arrow">→</span>
+  <div class="intro-step"><span class="n">3</span>コードの1行を書き換える</div>
+  <span class="intro-arrow">→</span>
+  <div class="intro-step"><span class="n">4</span>何が変わったか確認する</div>
+</div>
+
+<main>
+
+<!-- ── NAV ── -->
+<nav>
+  <div class="nav-section">
+    <div class="nav-label">基礎</div>
+    <button class="nav-item active" data-section="s0">UV と色</button>
+    <button class="nav-item" data-section="s1">マウス入力</button>
+    <button class="nav-item" data-section="s2">時間・アニメーション</button>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">変形・効果</div>
+    <button class="nav-item" data-section="s3">歪み・ウィグル</button>
+    <button class="nav-item" data-section="s4">しきい値・ポスタライズ</button>
+    <button class="nav-item" data-section="s5">色分離・グリッチ</button>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">発展</div>
+    <button class="nav-item" data-section="s6">ノイズ・パターン</button>
+    <button class="nav-item" data-section="s7">フィードバック</button>
+  </div>
+</nav>
+
+<!-- ── CONTENT ── -->
+<div class="content">
+
+  <!-- S0: UV と色 -->
+  <div class="section active" id="s0">
+    <div class="section-eyebrow">Step 01 / 基礎</div>
+    <div class="section-title">UV と色</div>
+    <div class="section-desc">
+      シェーダーの最初の一歩。画面上の「位置」が「色」になる。<br>
+      座標（UV）を理解すれば、残りはすべてその応用になる。
+    </div>
+    <div class="concept">
+<span class="cm">// UV = 画面上の位置を 0〜1 に正規化した座標</span>
+<span class="kw">vec2</span> uv = vTexCoord;
+
+<span class="cm">// 【キーライン】位置をそのまま色にする</span>
+<span class="hi">gl_FragColor = vec4(uv.x, uv.y, 1.0, 1.0);</span>
+<span class="cm">// x座標 → 赤　y座標 → 緑　固定値1.0 → 青</span>
+    </div>
+    <div class="cards">
+      <div class="card"><a href="https://editor.p5js.org/aferriss/sketches/14L9tqHFV" target="_blank">
+        <div class="card-tag"><span class="tag-dot" style="background:#7dd3fc"></span><span class="tag-text">UV</span></div>
+        <div class="card-body">
+          <div class="card-title">UV を色にする</div>
+          <div class="card-desc">画面の位置が色になる基本。左→右で赤が変化、上→下で緑が変化。</div>
+          <div class="card-what"><span>書き換え：1.0 を 0.0 にしたら何色になる？</span></div>
+        </div>
+      </a></div>
+      <div class="card"><a href="https://editor.p5js.org/aferriss/sketches/ZXvJ14lLv" target="_blank">
+        <div class="card-tag"><span class="tag-dot" style="background:#7dd3fc"></span><span class="tag-text">最小構成</span></div>
+        <div class="card-body">
+          <div class="card-title">シンプルな赤いシェーダー</div>
+          <div class="card-desc">全画面を1色で塗るだけ。シェーダーの最小構成。</div>
+          <div class="card-what"><span>書き換え：vec4(1,0,0,1) の数値を変える</span></div>
+        </div>
+      </a></div>
+      <div class="card"><a href="https://editor.p5js.org/aferriss/sketches/2E3Rl9PPG" target="_blank">
+        <div class="card-tag"><span class="tag-dot" style="background:#7dd3fc"></span><span class="tag-text">明度・コントラスト</span></div>
+        <div class="card-body">
+          <div class="card-title">明るさとコントラスト</div>
+          <div class="card-desc">画像に数値を掛けたり足したりするだけで印象が変わる。</div>
+          <div class="card-what"><span>書き換え：brightness / contrast の値</span></div>
+        </div>
+      </a></div>
+    </div>
+    <div class="task-box">
+      <h3>今日やること</h3>
+      <div class="task-item">「UV を色にする」を開いて、frag シェーダーの最後の行を1か所だけ変える</div>
+      <div class="task-item">変わった結果をスクリーンショットで保存する</div>
+      <div class="task-item">「なぜそう変わったか」を制作ノートに1行書く</div>
+    </div>
+  </div>
+
+  <!-- S1: マウス -->
+  <div class="section" id="s1">
+    <div class="section-eyebrow">Step 02 / 基礎</div>
+    <div class="section-title">マウス入力</div>
+    <div class="section-desc">
+      マウスの座標をシェーダーに送る（uniform変数）。<br>
+      「外からデータを渡す」という考え方がシェーダーの核心のひとつ。
+    </div>
+    <div class="concept">
+<span class="cm">// p5.js 側でマウス座標を送る</span>
+myShader.<span class="kw">setUniform</span>(<span class="hi">'u_mouse'</span>, [mouseX/width, mouseY/height]);
+
+<span class="cm">// シェーダー側で受け取る</span>
+<span class="kw">uniform vec2</span> u_mouse;
+
+<span class="cm">// 使う</span>
+<span class="hi">float r = u_mouse.x;</span>  <span class="cm">// マウスX → 赤チャンネル</span>
+    </div>
+    <div class="cards">
+      <div class="card"><a href="https://editor.p5js.org/aferriss/sketches/RYT2u7-te" target="_blank">
+        <div class="card-tag"><span class="tag-dot" style="background:#86efac"></span><span class="tag-text">uniform</span></div>
+        <div class="card-body">
+          <div class="card-title">マウスで色が変わる</div>
+          <div class="card-desc">マウスを動かすと色が変化。uniform変数の基本的な使い方。</div>
+          <div class="card-what"><span>書き換え：u_mouse.x を u_mouse.y に変えたら？</span></div>
+        </div>
+      </a></div>
+      <div class="card"><a href="https://editor.p5js.org/aferriss/sketches/wdT7661kh" target="_blank">
+        <div class="card-tag"><span class="tag-dot" style="background:#86efac"></span><span class="tag-text">smoothstep</span></div>
+        <div class="card-body">
+          <div class="card-title">smoothstep しきい値</div>
+          <div class="card-desc">マウスで境界線の位置と滑らかさを操作。smoothstep() の動作を体感。</div>
+          <div class="card-what"><span>書き換え：0.01 を 0.3 に変えるとどうなる？</span></div>
+        </div>
+      </a></div>
+    </div>
+    <div class="task-box">
+      <h3>今日やること</h3>
+      <div class="task-item">マウスで色が変わるスケッチを開き、u_mouse.x と u_mouse.y を入れ替える</div>
+      <div class="task-item">smoothstep の第2引数を 0.01 → 0.5 → 0.99 と変えて3種類保存</div>
+      <div class="task-item">「smoothstep は何を制御しているか」を1文で書く</div>
+    </div>
+  </div>
+
+  <!-- S2: 時間 -->
+  <div class="section" id="s2">
+    <div class="section-eyebrow">Step 03 / 基礎</div>
+    <div class="section-title">時間・アニメーション</div>
+    <div class="section-desc">
+      時間（millis）をシェーダーに送ると、静止画が動き出す。<br>
+      sin(time) と組み合わせることで周期的な変化が生まれる。
+    </div>
+    <div class="concept">
+<span class="cm">// p5.js 側</span>
+myShader.<span class="kw">setUniform</span>(<span class="hi">'u_time'</span>, millis() / 1000.0);
+
+<span class="cm">// シェーダー側</span>
+<span class="kw">uniform float</span> u_time;
+
+<span class="cm">// sin で -1〜1 を繰り返す → 0〜1 に変換</span>
+<span class="hi">float wave = sin(u_time) * 0.5 + 0.5;</span>
+    </div>
+    <div class="cards">
+      <div class="card"><a href="https://editor.p5js.org/aferriss/sketches/H27Weuajr" target="_blank">
+        <div class="card-tag"><span class="tag-dot" style="background:#fbbf24"></span><span class="tag-text">time + sin</span></div>
+        <div class="card-body">
+          <div class="card-title">ウィグル歪み</div>
+          <div class="card-desc">時間に応じて画面が波打つ。sin(time) で座標を歪ませる典型的な手法。</div>
+          <div class="card-what"><span>書き換え：sin の係数（0.1など）を大きくする</span></div>
+        </div>
+      </a></div>
+      <div class="card"><a href="https://editor.p5js.org/aferriss/sketches/m74DWvY9z" target="_blank">
+        <div class="card-tag"><span class="tag-dot" style="background:#fbbf24"></span><span class="tag-text">texture2D</span></div>
+        <div class="card-body">
+          <div class="card-title">画像を読み込む</div>
+          <div class="card-desc">自分の画像（前回のLoop断片のPNG）を読み込んでシェーダーで処理できる。</div>
+          <div class="card-what"><span>発展：自分のPNGに差し替えてみる</span></div>
+        </div>
+      </a></div>
+    </div>
+    <div class="task-box">
+      <h3>今日やること</h3>
+      <div class="task-item">ウィグル歪みを開いて、sin の引数に u_time * 2.0 など倍数を掛ける</div>
+      <div class="task-item">速さ・振れ幅を変えて、気に入った状態を録画（V キー）で保存</div>
+      <div class="task-item">「速さと印象の関係」を制作ノートに記録する</div>
+    </div>
+  </div>
+
+  <!-- S3: 歪み -->
+  <div class="section" id="s3">
+    <div class="section-eyebrow">Step 04 / 変形</div>
+    <div class="section-title">歪み・ウィグル・ディスプレイスメント</div>
+    <div class="section-desc">
+      UV座標を数式で動かすと、画像が伸び縮みしたり溶けたりする。<br>
+      「座標を変える」＝「見え方を変える」というシェーダーの核心。
+    </div>
+    <div class="concept">
+<span class="cm">// 座標をそのままサンプリング（普通）</span>
+<span class="kw">vec4</span> col = <span class="kw">texture2D</span>(tex, uv);
+
+<span class="cm">// 【キーライン】座標を歪ませてからサンプリング</span>
+<span class="kw">vec2</span> warped = uv + <span class="hi">vec2(sin(uv.y * 10.0 + time) * 0.05, 0.0)</span>;
+<span class="kw">vec4</span> col = <span class="kw">texture2D</span>(tex, warped);
+    </div>
+    <div class="cards">
+      <div class="card"><a href="https://editor.p5js.org/aferriss/sketches/H27Weuajr" target="_blank">
+        <div class="card-tag"><span class="tag-dot" style="background:#f9a8d4"></span><span class="tag-text">wiggle</span></div>
+        <div class="card-body">
+          <div class="card-title">ウィグル歪み</div>
+          <div class="card-desc">sin 波で横方向に揺らす。シンプルだが表現の幅が広い。</div>
+          <div class="card-what"><span>書き換え：uv.y → uv.x に変えたら方向が変わる</span></div>
+        </div>
+      </a></div>
+      <div class="card"><a href="https://editor.p5js.org/aferriss/sketches/hlHzkj80Z" target="_blank">
+        <div class="card-tag"><span class="tag-dot" style="background:#f9a8d4"></span><span class="tag-text">displacement</span></div>
+        <div class="card-body">
+          <div class="card-title">ディスプレイスメント</div>
+          <div class="card-desc">別の画像を「地図」として使い座標を変形させる。</div>
+          <div class="card-what"><span>発展：displacement map を自分の断片画像に差し替える</span></div>
+        </div>
+      </a></div>
+      <div class="card"><a href="https://editor.p5js.org/buckWorkshop/sketches/Y9wxsHuHF" target="_blank">
+        <div class="card-tag"><span class="tag-dot" style="background:#f9a8d4"></span><span class="tag-text">interactive</span></div>
+        <div class="card-body">
+          <div class="card-title">ディスプレイスメント ブラシ</div>
+          <div class="card-desc">マウスで塗るように歪ませる。インタラクティブな変形。</div>
+          <div class="card-what"><span>試す：ゆっくり動かす / 速く動かす</span></div>
+        </div>
+      </a></div>
+    </div>
+    <div class="task-box">
+      <h3>今日やること</h3>
+      <div class="task-item">ウィグルの sin の周波数（10.0）と振幅（0.05）を自由に変えて5パターン作る</div>
+      <div class="task-item">「前回のLoop断片のPNG」を画像として読み込み、歪みをかけてみる</div>
+      <div class="task-item">最も気に入ったパターンをPNG保存して制作ノートに理由を書く</div>
+    </div>
+  </div>
+
+  <!-- S4: しきい値 -->
+  <div class="section" id="s4">
+    <div class="section-eyebrow">Step 05 / 変形</div>
+    <div class="section-title">しきい値・ポスタライズ</div>
+    <div class="section-desc">
+      連続した色を「段階」に分けると絵画的・版画的な表現になる。<br>
+      step() と smoothstep() の違いを体感する。
+    </div>
+    <div class="concept">
+<span class="cm">// step: 0か1かの二値化（境界がくっきり）</span>
+<span class="hi">float mask = step(0.5, brightness);</span>
+
+<span class="cm">// smoothstep: 境界をなめらかにする</span>
+<span class="hi">float mask = smoothstep(0.4, 0.6, brightness);</span>
+<span class="cm">//                       ↑低  ↑高  ← この幅が「ぼかし量」</span>
+    </div>
+    <div class="cards">
+      <div class="card"><a href="https://editor.p5js.org/aferriss/sketches/wdT7661kh" target="_blank">
+        <div class="card-tag"><span class="tag-dot" style="background:#86efac"></span><span class="tag-text">smoothstep</span></div>
+        <div class="card-body">
+          <div class="card-title">なめらかなしきい値</div>
+          <div class="card-desc">境界のぼかし幅をマウスで操作。step との違いを比較できる。</div>
+          <div class="card-what"><span>書き換え：両引数の差を 0.001 / 0.5 で比較</span></div>
+        </div>
+      </a></div>
+      <div class="card"><a href="https://editor.p5js.org/buckWorkshop/sketches/VIcHC1OMy" target="_blank">
+        <div class="card-tag"><span class="tag-dot" style="background:#86efac"></span><span class="tag-text">posterize</span></div>
+        <div class="card-body">
+          <div class="card-title">ポスタライズ</div>
+          <div class="card-desc">色を段階に丸める。floor() を使った色の量子化。</div>
+          <div class="card-what"><span>書き換え：段階数（4.0 など）を変える</span></div>
+        </div>
+      </a></div>
+      <div class="card"><a href="https://editor.p5js.org/aferriss/sketches/nAHtfUJcZ" target="_blank">
+        <div class="card-tag"><span class="tag-dot" style="background:#86efac"></span><span class="tag-text">pixelate</span></div>
+        <div class="card-body">
+          <div class="card-title">ピクセレート</div>
+          <div class="card-desc">解像度を意図的に落とす。floor() で座標を丸める手法。</div>
+          <div class="card-what"><span>書き換え：ブロックサイズの数値を変える</span></div>
+        </div>
+      </a></div>
+    </div>
+    <div class="task-box">
+      <h3>今日やること</h3>
+      <div class="task-item">ポスタライズの段階数を 2 / 4 / 8 / 16 に変えて印象の違いを確認</div>
+      <div class="task-item">「前回のLoop断片のPNG」にしきい値処理をかけてPNG保存</div>
+      <div class="task-item">コラージュ素材として使えそうかどうかを制作ノートに書く</div>
+    </div>
+  </div>
+
+  <!-- S5: 色分離 -->
+  <div class="section" id="s5">
+    <div class="section-eyebrow">Step 06 / 変形</div>
+    <div class="section-title">色分離・クロマティック収差・グリッチ</div>
+    <div class="section-desc">
+      RGB の各チャンネルを別々の座標からサンプリングする。<br>
+      ズレの量を変えるだけで、繊細なものから激しいグリッチまで作れる。
+    </div>
+    <div class="concept">
+<span class="cm">// 【キーライン】RGBを別々の位置からサンプリング</span>
+<span class="kw">float</span> r = <span class="kw">texture2D</span>(tex, uv + <span class="hi">vec2(offset, 0.0)</span>).r;
+<span class="kw">float</span> g = <span class="kw">texture2D</span>(tex, uv                   ).g;
+<span class="kw">float</span> b = <span class="kw">texture2D</span>(tex, uv - <span class="hi">vec2(offset, 0.0)</span>).b;
+<span class="cm">// offset を大きくするほど色ズレが強くなる</span>
+    </div>
+    <div class="cards">
+      <div class="card"><a href="https://editor.p5js.org/aferriss/sketches/Vf-h3VgO4" target="_blank">
+        <div class="card-tag"><span class="tag-dot" style="background:#f9a8d4"></span><span class="tag-text">RGB split</span></div>
+        <div class="card-body">
+          <div class="card-title">クロマティック収差</div>
+          <div class="card-desc">RGBチャンネルをずらして色収差を演出。量でニュアンスが変わる。</div>
+          <div class="card-what"><span>書き換え：offset の値を 0.001 → 0.05 に</span></div>
+        </div>
+      </a></div>
+      <div class="card"><a href="https://editor.p5js.org/buckWorkshop/sketches/6voJjxfD_" target="_blank">
+        <div class="card-tag"><span class="tag-dot" style="background:#f9a8d4"></span><span class="tag-text">color sep</span></div>
+        <div class="card-body">
+          <div class="card-title">カラーセパレーション</div>
+          <div class="card-desc">各チャンネルを独立して操作。マウスでリアルタイムに変化。</div>
+          <div class="card-what"><span>試す：マウスをゆっくり端まで移動させる</span></div>
+        </div>
+      </a></div>
+      <div class="card"><a href="https://editor.p5js.org/aferriss/sketches/jAPIT0hke" target="_blank">
+        <div class="card-tag"><span class="tag-dot" style="background:#f9a8d4"></span><span class="tag-text">convolution</span></div>
+        <div class="card-body">
+          <div class="card-title">エンボス（コンボリューション）</div>
+          <div class="card-desc">周辺ピクセルとの差を取ることでエッジを浮き上がらせる。</div>
+          <div class="card-what"><span>書き換え：カーネルの数値を1か所変える</span></div>
+        </div>
+      </a></div>
+    </div>
+    <div class="task-box">
+      <h3>今日やること</h3>
+      <div class="task-item">クロマティック収差を「さりげない量（0.003）」と「グリッチ量（0.04）」で2種類保存</div>
+      <div class="task-item">前回のLoop断片のPNGに適用して、コラージュ素材を3点以上作る</div>
+      <div class="task-item">「どの量が自分の表現テーマに合うか」を制作ノートに記録</div>
+    </div>
+  </div>
+
+  <!-- S6: ノイズ -->
+  <div class="section" id="s6">
+    <div class="section-eyebrow">Step 07 / 発展</div>
+    <div class="section-title">ノイズ・パターン生成</div>
+    <div class="section-desc">
+      乱数とノイズ関数で「自然に見えるランダム」を作る。<br>
+      パターン生成の基礎。画像なしで素材を生成できる。
+    </div>
+    <div class="concept">
+<span class="cm">// 擬似乱数：同じ入力 → 常に同じ出力</span>
+<span class="kw">float</span> hash(<span class="kw">vec2</span> p){
+  <span class="kw">return</span> <span class="hi">fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5);</span>
+}
+<span class="cm">// fract = 小数部分だけ取り出す（必ず 0〜1）</span>
+<span class="cm">// sin と大きな数の掛け算でランダムに見える値を作る</span>
+    </div>
+    <div class="cards">
+      <div class="card"><a href="https://editor.p5js.org/aferriss/sketches/Bg9toEg0G" target="_blank">
+        <div class="card-tag"><span class="tag-dot" style="background:#c4b5fd"></span><span class="tag-text">shadertoy変換</span></div>
+        <div class="card-body">
+          <div class="card-title">Shadertoy → p5 変換例</div>
+          <div class="card-desc">ネットで見かけるシェーダーをp5に持ち込む方法。今後のリファレンスに。</div>
+          <div class="card-what"><span>参照：変数名の対応表をコメントで確認</span></div>
+        </div>
+      </a></div>
+      <div class="card"><a href="https://editor.p5js.org/buckWorkshop/sketches/lCUdHs2bi" target="_blank">
+        <div class="card-tag"><span class="tag-dot" style="background:#c4b5fd"></span><span class="tag-text">pixelate shader</span></div>
+        <div class="card-body">
+          <div class="card-title">シェーダーでピクセレート</div>
+          <div class="card-desc">floor() でUVを離散化。ピクセルアート的な質感を生成。</div>
+          <div class="card-what"><span>書き換え：離散化の粒度を変える</span></div>
+        </div>
+      </a></div>
+    </div>
+    <div class="task-box">
+      <h3>今日やること</h3>
+      <div class="task-item">Shadertoy変換例のコードを読んで、p5の変数名とShadertoyの変数名の対応をノートにまとめる</div>
+      <div class="task-item">shader_gallery.html のステージ3（ノイズ）を録画して素材として保存</div>
+      <div class="task-item">生成した素材とLoop断片を並べて、コラージュの構成を1案考える</div>
+    </div>
+  </div>
+
+  <!-- S7: フィードバック -->
+  <div class="section" id="s7">
+    <div class="section-eyebrow">Step 08 / 発展</div>
+    <div class="section-title">フィードバック</div>
+    <div class="section-desc">
+      前のフレームを今のフレームに混ぜることで「残像」「増殖」「崩壊」が生まれる。<br>
+      VJやエクスペリメンタル映像の定番手法。
+    </div>
+    <div class="concept">
+<span class="cm">// 前のフレームを少し暗くしながら混ぜる</span>
+<span class="kw">vec4</span> prev = <span class="kw">texture2D</span>(u_prev_frame, uv);
+<span class="kw">vec4</span> curr = <span class="kw">texture2D</span>(u_curr_frame, uv);
+
+<span class="hi">gl_FragColor = mix(curr, prev * 0.95, 0.5);</span>
+<span class="cm">//                         ↑ 0.95 = 残像の残り方（1.0で消えない）</span>
+    </div>
+    <div class="cards">
+      <div class="card"><a href="https://editor.p5js.org/buckWorkshop/sketches/jwVg3EKlW" target="_blank">
+        <div class="card-tag"><span class="tag-dot" style="background:#fbbf24"></span><span class="tag-text">feedback</span></div>
+        <div class="card-body">
+          <div class="card-title">フィードバック</div>
+          <div class="card-desc">前フレームを混ぜ込む。係数1つで「残像」から「爆発的増殖」まで変わる。</div>
+          <div class="card-what"><span>書き換え：mix の第3引数（0〜1）を変える</span></div>
+        </div>
+      </a></div>
+      <div class="card"><a href="https://editor.p5js.org/buckWorkshop/sketches/rjCcime7e" target="_blank">
+        <div class="card-tag"><span class="tag-dot" style="background:#fbbf24"></span><span class="tag-text">video</span></div>
+        <div class="card-body">
+          <div class="card-title">映像を読み込む</div>
+          <div class="card-desc">MP4をテクスチャとして読み込みシェーダーで処理。前回のLoopに適用可能。</div>
+          <div class="card-what"><span>発展：自分のMP4に差し替える</span></div>
+        </div>
+      </a></div>
+      <div class="card"><a href="https://editor.p5js.org/buckWorkshop/sketches/-y-jy0A8Z" target="_blank">
+        <div class="card-tag"><span class="tag-dot" style="background:#fbbf24"></span><span class="tag-text">grid</span></div>
+        <div class="card-body">
+          <div class="card-title">過去フレームのグリッド</div>
+          <div class="card-desc">時間の異なるフレームをグリッド状に並べる。時間の可視化。</div>
+          <div class="card-what"><span>試す：グリッドの分割数を変える</span></div>
+        </div>
+      </a></div>
+    </div>
+    <div class="task-box">
+      <h3>今日やること</h3>
+      <div class="task-item">フィードバックの係数を 0.8 / 0.95 / 0.999 で試して録画保存</div>
+      <div class="task-item">「係数の違いが映像の印象にどう影響するか」を問いの形で書く</div>
+      <div class="task-item">最も自分のテーマに近い係数を1つ選んで理由をノートに記録</div>
+    </div>
+  </div>
+
+</div><!-- /content -->
+</main>
+
+<script>
+const btns = document.querySelectorAll('.nav-item');
+const sections = document.querySelectorAll('.section');
+
+btns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const id = btn.dataset.section;
+    btns.forEach(b => b.classList.remove('active'));
+    sections.forEach(s => s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(id).classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
