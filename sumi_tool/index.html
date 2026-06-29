@@ -10,11 +10,13 @@
   --dim:rgba(255,255,255,0.25); --mid:rgba(255,255,255,0.55);
   --fg:rgba(255,255,255,0.88); --mono:'Courier New',monospace;
 }
-body{background:var(--bg);color:var(--fg);font-family:var(--mono);overflow:hidden;}
+body{background:#000;color:var(--fg);font-family:var(--mono);overflow:hidden;}
 
 /* canvas layers */
 #gl-canvas{ position:fixed;inset:0;width:100%;height:100%;}
 #p5-canvas{ position:fixed;inset:0;width:100%;height:100%;pointer-events:none;}
+/* 単色背景オーバーレイ */
+#bg-canvas{ position:fixed;inset:0;width:100%;height:100%;pointer-events:none;}
 
 /* drop zone */
 #dropzone{
@@ -72,11 +74,33 @@ body{background:var(--bg);color:var(--fg);font-family:var(--mono);overflow:hidde
   font-size:9px;color:var(--dim);letter-spacing:0.1em;
   pointer-events:none;z-index:20;
 }
+
+/* bg switcher */
+#bgbar{
+  position:fixed;top:16px;left:50%;transform:translateX(-50%);
+  display:none;
+  align-items:center;gap:6px;
+  background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);
+  border:1px solid var(--line);border-radius:20px;
+  padding:6px 12px;z-index:20;
+}
+#bgbar .bg-label{
+  font-size:8px;letter-spacing:0.14em;color:var(--dim);margin-right:4px;
+}
+.bg-btn{
+  width:20px;height:20px;border-radius:50%;
+  border:2px solid transparent;cursor:pointer;
+  transition:border-color 0.15s,transform 0.1s;
+  flex-shrink:0;
+}
+.bg-btn:hover{transform:scale(1.15);}
+.bg-btn.active{border-color:rgba(255,255,255,0.7);}
 </style>
 </head>
 <body>
 
 <canvas id="gl-canvas"></canvas>
+<canvas id="bg-canvas"></canvas>
 <canvas id="p5-canvas"></canvas>
 
 <div id="dropzone">
@@ -120,6 +144,18 @@ body{background:var(--bg);color:var(--fg);font-family:var(--mono);overflow:hidde
   S → スペースキーで保存
 </div>
 
+<div id="bgbar">
+  <span class="bg-label">背景</span>
+  <button class="bg-btn active" data-bg="shader" title="シェーダー" style="background:linear-gradient(135deg,#1a1a4a,#0a4a2a);"></button>
+  <button class="bg-btn" data-bg="#000000" title="黒" style="background:#000;"></button>
+  <button class="bg-btn" data-bg="#ffffff" title="白" style="background:#fff;"></button>
+  <button class="bg-btn" data-bg="#f5f0e8" title="和紙" style="background:#f5f0e8;"></button>
+  <button class="bg-btn" data-bg="#1a0a00" title="濃茶" style="background:#1a0a00;"></button>
+  <button class="bg-btn" data-bg="#0a0a2a" title="深藍" style="background:#0a0a2a;"></button>
+  <button class="bg-btn" data-bg="#1a0a1a" title="深紫" style="background:#1a0a1a;"></button>
+  <button class="bg-btn" data-bg="#002a00" title="深緑" style="background:#002a00;"></button>
+</div>
+
 <div id="info" style="display:none;"></div>
 
 <script>
@@ -131,14 +167,17 @@ var W, H;
 var mouse = {x:0.5, y:0.5, px:0.5, py:0.5, down:false};
 
 var glCanvas  = document.getElementById('gl-canvas');
+var bgCanvas  = document.getElementById('bg-canvas');
 var p5Canvas  = document.getElementById('p5-canvas');
 var gl        = glCanvas.getContext('webgl') || glCanvas.getContext('experimental-webgl');
 var ctx       = p5Canvas.getContext('2d');
+var bgCtx     = bgCanvas.getContext('2d');
 
 // ── resize ───────────────────────────────────────────────────
 function resize(){
   W = innerWidth; H = innerHeight;
   glCanvas.width = W; glCanvas.height = H;
+  bgCanvas.width = W; bgCanvas.height = H;
   p5Canvas.width = W; p5Canvas.height = H;
   gl.viewport(0,0,W,H);
 }
@@ -173,6 +212,7 @@ function loadFile(file){
       imgData = tc.getImageData(0, 0, img.width, img.height);
       dz.style.display = 'none';
       document.getElementById('modebar').style.display = 'flex';
+      document.getElementById('bgbar').style.display = 'flex';
       document.getElementById('hint').style.display = 'block';
       document.getElementById('info').style.display = 'block';
       initGL();
@@ -201,6 +241,14 @@ function setMode(m){
   document.querySelectorAll('.mode-btn').forEach(function(b,i){
     b.classList.toggle('active', i===m);
   });
+  // B(1)とD(3)はシェーダー背景専用 → 背景バーを非表示・強制シェーダー
+  if(m===1 || m===3){
+    document.getElementById('bgbar').style.display = 'none';
+    bgMode = 'shader';
+    glCanvas.style.opacity = '1';
+  } else {
+    document.getElementById('bgbar').style.display = img ? 'flex' : 'none';
+  }
   rebuildMode();
 }
 
@@ -241,7 +289,8 @@ vec2 rot(vec2 p,float a){return vec2(p.x*cos(a)-p.y*sin(a),p.x*sin(a)+p.y*cos(a)
 
 void main(){
   vec2 uv=(gl_FragCoord.xy-R*.5)/min(R.x,R.y);
-  vec2 uvn=gl_FragCoord.xy/R;
+  // UNPACK_FLIP_Y_WEBGL でテクスチャのY反転は修正済み
+  vec2 uvn=vec2(gl_FragCoord.x/R.x, gl_FragCoord.y/R.y);
   float t=T;
   vec3 col=vec3(0.);
 
@@ -257,15 +306,22 @@ void main(){
   if(MODE==1){
     // B: テクスチャブレンド
     vec4 tc=texture2D(uTex,uvn);
-    float alpha=tc.a;
-    col=mix(col,vec3(0.),alpha*0.85);
-    col+=tc.rgb*alpha*0.15;
+    // 黒文字PNG: アルファが高くRGBが暗い部分 = 墨
+    float ink=tc.a*(1.0-tc.r);
+    col=mix(col, vec3(0.02,0.02,0.05), ink*0.9);
   }
   if(MODE==3){
-    // D: マスク — 文字の内側だけ強くする
+    // D: マスク — 黒い墨部分の内側にシェーダーを強調表示
     vec4 tc=texture2D(uTex,uvn);
-    float mask=tc.a*(1.-tc.r*0.5); // 黒い部分ほど強い
-    col=mix(col*0.1, col*3.0+hsv(.5+w*.2,.9,g*2.), mask);
+    float ink=tc.a*(1.0-tc.r); // 0=透明/白, 1=黒い墨
+    // 墨の内側: シェーダーを明るく・鮮やかに
+    float glow=pow(nd,1.5)*2.0;
+    vec3 inside=hsv(0.5+w*0.3+t*0.02, 1.0, glow);
+    // 墨の外側: 暗く抑える
+    col=mix(col*0.05, inside, ink);
+    // 輪郭を光らせる
+    float edge=ink*(1.0-ink)*4.0;
+    col+=hsv(0.15+t*0.01, 0.8, edge*0.8);
   }
 
   gl_FragColor=vec4(col,1.);
@@ -292,10 +348,12 @@ function initGL(){
   gl.enableVertexAttribArray(loc);
   gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
 
-  // texture
+  // texture（Y軸反転を修正）
   glTex=gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D,glTex);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
   gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,img);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
@@ -378,11 +436,13 @@ function updateParticles(){
 }
 
 function drawParticles(){
-  ctx.clearRect(0,0,W,H);
+  var light = bgMode === '#ffffff' || bgMode === '#f5f0e8';
   particles.forEach(function(p){
     ctx.beginPath();
     ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
-    ctx.fillStyle='rgba(255,255,255,'+p.alpha+')';
+    ctx.fillStyle = light
+      ? 'rgba(0,0,0,'+p.alpha+')'
+      : 'rgba(255,255,255,'+p.alpha+')';
     ctx.fill();
   });
 }
@@ -461,12 +521,13 @@ function initDraw(){
 }
 
 function drawWriting(){
-  ctx.clearRect(0,0,W,H);
+  // 背景クリアはloop側で処理済み
   drawProgress=Math.min(drawProgress+drawSpeed,1);
   var count=Math.floor(drawProgress*drawPts.length);
   if(count<2) return;
   // 完成した部分を描画
-  ctx.fillStyle='rgba(20,20,30,0.85)';
+  var light = bgMode === '#ffffff' || bgMode === '#f5f0e8';
+  ctx.fillStyle = light ? 'rgba(10,10,20,0.9)' : 'rgba(20,20,30,0.85)';
   for(var i=0;i<count;i++){
     var p=drawPts[i];
     var r=1.2+Math.sin(i*0.05)*0.5;
@@ -501,6 +562,33 @@ function updateInfo(){
   document.getElementById('info').textContent=MODE_INFO[mode];
 }
 
+// ── bg switcher ──────────────────────────────────────────────
+var bgMode = 'shader'; // 'shader' or hex color
+
+document.querySelectorAll('.bg-btn').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    bgMode = btn.dataset.bg;
+    document.querySelectorAll('.bg-btn').forEach(function(b){
+      b.classList.toggle('active', b===btn);
+    });
+  });
+});
+
+function renderBG(){
+  if(bgMode === 'shader'){
+    // WebGL shaderをそのまま描画
+    glCanvas.style.display = 'block';
+    renderGL();
+  } else {
+    // 単色背景
+    glCanvas.style.display = 'none';
+    ctx.save();
+    ctx.fillStyle = bgMode;
+    ctx.fillRect(0,0,W,H);
+    ctx.restore();
+  }
+}
+
 // ── rebuild on mode change ───────────────────────────────────
 function rebuildMode(){
   if(!img) return;
@@ -513,13 +601,26 @@ function rebuildMode(){
 
 // ── main loop ────────────────────────────────────────────────
 function loop(){
-  renderGL();
+  // 1. GL背景（シェーダー）
+  if(bgMode === 'shader'){
+    glCanvas.style.opacity = '1';
+    renderGL();
+    bgCtx.clearRect(0,0,W,H);
+  } else {
+    // GL非表示、bg-canvasに単色
+    glCanvas.style.opacity = '0';
+    bgCtx.fillStyle = bgMode;
+    bgCtx.fillRect(0,0,W,H);
+  }
+
+  // 2. p5-canvasをクリア（透明）してモード描画
   ctx.clearRect(0,0,W,H);
   if(mode===0){ updateParticles(); drawParticles(); }
   if(mode===1){ drawBlend(); }
   if(mode===2){ drawRain(); }
   if(mode===3){ drawMaskMode(); }
   if(mode===4){ drawWriting(); }
+
   requestAnimationFrame(loop);
 }
 
