@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>ZINE Template — マルチメディア表現II</title>
+<style>
+/* ── 画面表示 ── */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+
+:root{
+  --sans: system-ui,'Hiragino Sans','Yu Gothic',sans-serif;
+  --mono: 'Courier New',monospace;
+}
+
+body{
+  background:#1a1a1a;
+  font-family:var(--sans);
+  padding:24px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:20px;
+}
+
+/* コントロール */
+#ctrl{
+  display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+  background:rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:8px;padding:14px 18px;
+  max-width:960px;width:100%;
+}
+.cg{display:flex;flex-direction:column;gap:3px;}
+.cg label{font-size:8px;letter-spacing:0.15em;color:rgba(255,255,255,0.35);font-family:var(--mono);text-transform:uppercase;}
+.cg input[type=text]{
+  background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);
+  border-radius:3px;color:#fff;font-size:12px;padding:5px 9px;outline:none;
+  font-family:var(--sans);width:150px;
+}
+.cg input[type=color]{width:44px;height:30px;padding:2px;border:1px solid rgba(255,255,255,0.12);border-radius:3px;cursor:pointer;background:none;}
+#btn-print{
+  padding:7px 18px;background:rgba(255,255,255,0.1);
+  border:1px solid rgba(255,255,255,0.2);border-radius:4px;
+  color:#fff;font-size:11px;letter-spacing:0.12em;cursor:pointer;
+  font-family:var(--mono);transition:background 0.15s;
+}
+#btn-print:hover{background:rgba(255,255,255,0.2);}
+
+/* 折り方の説明 */
+#fold-hint{
+  font-size:9px;color:rgba(255,255,255,0.25);letter-spacing:0.1em;
+  font-family:var(--mono);text-align:center;line-height:2;
+}
+
+/* ── A4用紙（横）8ページ折り ── */
+/* 印刷時：A4横1枚。折るとA6の8ページzineになる */
+/* 面1（表面）：p1表紙・p2・p3・p4裏表紙 左→右 */
+/* 面2（裏面）：p8・p7・p6・p5 左→右 */
+
+.sheet-wrap{
+  display:flex;flex-direction:column;gap:12px;
+  align-items:center;
+}
+.sheet-label{
+  font-size:9px;color:rgba(255,255,255,0.3);
+  letter-spacing:0.15em;font-family:var(--mono);
+  text-transform:uppercase;align-self:flex-start;
+  margin-left:4px;
+}
+
+.sheet{
+  /* A4横 = 297×210mm。画面では縮小表示 */
+  width:960px;
+  height:680px;
+  background:#fff;
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  position:relative;
+  box-shadow:0 4px 24px rgba(0,0,0,0.5);
+}
+
+/* 折り目の補助線 */
+.sheet::after{
+  content:'';
+  position:absolute;inset:0;
+  background:
+    linear-gradient(90deg,transparent calc(25% - 0.5px),rgba(0,0,0,0.12) calc(25%),rgba(0,0,0,0.12) calc(25% + 0.5px),transparent calc(25% + 1px)),
+    linear-gradient(90deg,transparent calc(50% - 0.5px),rgba(0,0,0,0.12) calc(50%),rgba(0,0,0,0.12) calc(50% + 0.5px),transparent calc(50% + 1px)),
+    linear-gradient(90deg,transparent calc(75% - 0.5px),rgba(0,0,0,0.12) calc(75%),rgba(0,0,0,0.12) calc(75% + 0.5px),transparent calc(75% + 1px));
+  pointer-events:none;
+  z-index:10;
+}
+
+/* 各ページ */
+.page{
+  position:relative;
+  overflow:hidden;
+  cursor:pointer;
+  border:1px solid rgba(0,0,0,0.06);
+  display:flex;flex-direction:column;
+}
+.page:hover .page-overlay{opacity:1;}
+
+/* ページ番号バッジ */
+.page-num{
+  position:absolute;top:6px;left:8px;
+  font-size:8px;letter-spacing:0.1em;
+  color:rgba(0,0,0,0.25);font-family:var(--mono);
+  z-index:5;pointer-events:none;
+}
+
+/* ドロップオーバーレイ */
+.page-overlay{
+  position:absolute;inset:0;
+  background:rgba(0,0,0,0.35);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;color:rgba(255,255,255,0.7);letter-spacing:0.12em;
+  opacity:0;transition:opacity 0.2s;z-index:6;
+  font-family:var(--mono);
+  pointer-events:none;
+}
+.page.drag-over .page-overlay{opacity:1;background:rgba(80,120,255,0.4);}
+
+/* ページ内の画像 */
+.page-img{
+  width:100%;height:100%;
+  object-fit:cover;
+  display:block;
+}
+
+/* テキストレイヤー */
+.page-text{
+  position:absolute;
+  width:100%;
+  pointer-events:none;
+  z-index:4;
+}
+.page-text.bottom{bottom:0;padding:10px 10px 8px;}
+.page-text.center{top:50%;transform:translateY(-50%);text-align:center;padding:10px;}
+.page-text.top{top:0;padding:8px 10px 10px;}
+
+/* 表紙スタイル */
+#p1{background:var(--cover-bg,#1a1a2e);}
+#p1 .cover-title{
+  position:absolute;bottom:60px;left:0;right:0;
+  text-align:center;
+  font-size:28px;font-weight:700;letter-spacing:0.08em;
+  color:#fff;text-transform:uppercase;
+  text-shadow:0 2px 12px rgba(0,0,0,0.4);
+  line-height:1.1;
+}
+#p1 .cover-keyword{
+  position:absolute;bottom:38px;left:0;right:0;
+  text-align:center;font-size:9px;letter-spacing:0.3em;
+  color:rgba(255,255,255,0.4);text-transform:uppercase;
+}
+#p1 .cover-series{
+  position:absolute;top:12px;left:0;right:0;
+  text-align:center;font-size:7px;letter-spacing:0.3em;
+  color:rgba(255,255,255,0.3);text-transform:uppercase;
+}
+
+/* 裏表紙スタイル（p4・面1の右端） */
+#p4{background:var(--cover-bg,#1a1a2e);}
+#p4 .back-url{
+  position:absolute;bottom:16px;left:0;right:0;
+  text-align:center;font-size:8px;letter-spacing:0.15em;
+  color:rgba(255,255,255,0.4);font-family:var(--mono);
+}
+#p4 .back-qr{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-55%);
+  width:80px;height:80px;
+  background:rgba(255,255,255,0.1);
+  border:1px solid rgba(255,255,255,0.2);
+  border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:7px;color:rgba(255,255,255,0.3);letter-spacing:0.08em;
+  text-align:center;line-height:1.8;font-family:var(--mono);
+}
+
+/* コンテンツページのセリフ */
+.page-caption{
+  background:rgba(0,0,0,0.6);
+  padding:6px 8px 5px;
+}
+.page-caption .emotion-tag{
+  font-size:7px;letter-spacing:0.18em;
+  color:rgba(255,255,255,0.45);font-family:var(--mono);
+  text-transform:uppercase;display:block;margin-bottom:2px;
+}
+.page-caption .serif{
+  font-size:11px;color:#fff;letter-spacing:0.1em;line-height:1.5;
+}
+
+/* プレースホルダー */
+.placeholder{
+  width:100%;height:100%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:6px;background:var(--ph-color,#f0f0f0);
+}
+.placeholder .ph-label{
+  font-size:9px;letter-spacing:0.12em;color:rgba(0,0,0,0.3);
+  font-family:var(--mono);text-align:center;line-height:1.8;
+}
+.placeholder .ph-emotion{
+  font-size:13px;font-weight:bold;letter-spacing:0.05em;
+  color:rgba(0,0,0,0.2);
+}
+
+/* ── 印刷 ── */
+@media print{
+  body{background:#fff;padding:0;}
+  #ctrl,#fold-hint,.sheet-label{display:none;}
+  .sheet-wrap{gap:0;}
+  .sheet{
+    width:297mm;height:210mm;
+    box-shadow:none;
+    page-break-after:always;
+  }
+  .sheet:last-child{page-break-after:avoid;}
+  .page-num{display:none;}
+  .page-overlay{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- コントロール -->
+<div id="ctrl">
+  <div class="cg">
+    <label>タイトル</label>
+    <input type="text" id="c-title" value="ずんだもんの世界">
+  </div>
+  <div class="cg">
+    <label>世界観の1語</label>
+    <input type="text" id="c-keyword" value="感情">
+  </div>
+  <div class="cg">
+    <label>シリーズ名</label>
+    <input type="text" id="c-series" value="MEDIA EXPRESSION 2026">
+  </div>
+  <div class="cg">
+    <label>URL</label>
+    <input type="text" id="c-url" value="media-expression-2026.github.io">
+  </div>
+  <div class="cg">
+    <label>表紙色</label>
+    <input type="color" id="c-covercol" value="#1a1a2e">
+  </div>
+  <button id="btn-print">🖨 印刷（A4横）</button>
+</div>
+
+<div id="fold-hint">
+  【折り方】印刷後 → 縦半分に折る → 横半分に折る → 真ん中を切る → 広げて折り畳む<br>
+  面1（表）を先に印刷 → 同じ紙の裏に面2（裏）を印刷 → 両面印刷でも可
+</div>
+
+<!-- 面1（表面）: 表紙→p2→p3→裏表紙 -->
+<div class="sheet-wrap">
+  <div class="sheet-label">面1（表面）— 印刷して表向きに置く</div>
+  <div class="sheet" id="face1">
+
+    <!-- p1: 表紙 -->
+    <div class="page" id="p1" data-page="1">
+      <div class="page-num">表紙</div>
+      <div class="page-overlay">画像をドロップ</div>
+      <div class="cover-series" id="cv-series">MEDIA EXPRESSION 2026</div>
+      <div class="cover-title" id="cv-title">ずんだもんの世界</div>
+      <div class="cover-keyword" id="cv-keyword">感情</div>
+    </div>
+
+    <!-- p2: normal -->
+    <div class="page" id="p2" data-page="2" data-emotion="normal">
+      <div class="page-num">p2</div>
+      <div class="page-overlay">画像をドロップ</div>
+      <div class="placeholder" style="--ph-color:#e8f4e8;">
+        <div class="ph-emotion">😐</div>
+        <div class="ph-label">normal<br>スクリーンショットを<br>ドロップ</div>
+      </div>
+      <div class="page-text bottom">
+        <div class="page-caption">
+          <span class="emotion-tag">normal</span>
+          <span class="serif" data-editable="true">なのだ。</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- p3: happy -->
+    <div class="page" id="p3" data-page="3" data-emotion="happy">
+      <div class="page-num">p3</div>
+      <div class="page-overlay">画像をドロップ</div>
+      <div class="placeholder" style="--ph-color:#fff8e0;">
+        <div class="ph-emotion">😄</div>
+        <div class="ph-label">happy<br>スクリーンショットを<br>ドロップ</div>
+      </div>
+      <div class="page-text bottom">
+        <div class="page-caption">
+          <span class="emotion-tag">happy</span>
+          <span class="serif" data-editable="true">うれしいのだ！</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- p4: 裏表紙 -->
+    <div class="page" id="p4" data-page="back">
+      <div class="page-num">裏表紙</div>
+      <div class="page-overlay">画像をドロップ</div>
+      <div class="back-qr" id="back-qr">QR<br>コード<br>ここに</div>
+      <div class="back-url" id="back-url">media-expression-2026.github.io</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 面2（裏面）: p8→p7→p6→p5 左→右 -->
+<div class="sheet-wrap">
+  <div class="sheet-label">面2（裏面）— 同じ紙の裏に印刷する</div>
+  <div class="sheet" id="face2">
+
+    <!-- p8: excited（面2左端） -->
+    <div class="page" id="p8" data-page="8" data-emotion="excited">
+      <div class="page-num">p8</div>
+      <div class="page-overlay">画像をドロップ</div>
+      <div class="placeholder" style="--ph-color:#e8ffe8;">
+        <div class="ph-emotion">🤩</div>
+        <div class="ph-label">excited<br>スクリーンショットを<br>ドロップ</div>
+      </div>
+      <div class="page-text bottom">
+        <div class="page-caption">
+          <span class="emotion-tag">excited</span>
+          <span class="serif" data-editable="true">さいこうなのだ！！！</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- p7: 考察ページ -->
+    <div class="page" id="p7" data-page="7">
+      <div class="page-num">p7</div>
+      <div class="page-overlay">画像をドロップ</div>
+      <div class="placeholder" style="--ph-color:#f5f5f5;">
+        <div class="ph-label">考察・メモ<br>断片まとめ<br>画像をドロップ可</div>
+      </div>
+      <div class="page-text bottom">
+        <div class="page-caption">
+          <span class="emotion-tag">note</span>
+          <span class="serif" data-editable="true">世界観の1語を書く</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- p6: angry -->
+    <div class="page" id="p6" data-page="6" data-emotion="angry">
+      <div class="page-num">p6</div>
+      <div class="page-overlay">画像をドロップ</div>
+      <div class="placeholder" style="--ph-color:#ffe8e8;">
+        <div class="ph-emotion">😠</div>
+        <div class="ph-label">angry<br>スクリーンショットを<br>ドロップ</div>
+      </div>
+      <div class="page-text bottom">
+        <div class="page-caption">
+          <span class="emotion-tag">angry</span>
+          <span class="serif" data-editable="true">ゆるさないのだ！！</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- p5: sad -->
+    <div class="page" id="p5" data-page="5" data-emotion="sad">
+      <div class="page-num">p5</div>
+      <div class="page-overlay">画像をドロップ</div>
+      <div class="placeholder" style="--ph-color:#e8eeff;">
+        <div class="ph-emotion">😢</div>
+        <div class="ph-label">sad<br>スクリーンショットを<br>ドロップ</div>
+      </div>
+      <div class="page-text bottom">
+        <div class="page-caption">
+          <span class="emotion-tag">sad</span>
+          <span class="serif" data-editable="true">かなしいのだ…</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── コントロール ──────────────────────────────────────────────
+function bind(id,fn){ document.getElementById(id).addEventListener('input',fn); }
+
+bind('c-title', function(e){
+  document.getElementById('cv-title').textContent=e.target.value;
+});
+bind('c-keyword', function(e){
+  document.getElementById('cv-keyword').textContent=e.target.value;
+});
+bind('c-series', function(e){
+  document.getElementById('cv-series').textContent=e.target.value;
+});
+bind('c-url', function(e){
+  document.getElementById('back-url').textContent=e.target.value;
+});
+bind('c-covercol', function(e){
+  document.querySelectorAll('#p1,#p4').forEach(function(el){
+    el.style.background=e.target.value;
+  });
+});
+
+document.getElementById('btn-print').addEventListener('click',function(){
+  window.print();
+});
+
+// ── ドラッグ＆ドロップ ────────────────────────────────────────
+document.querySelectorAll('.page').forEach(function(page){
+  page.addEventListener('dragover',function(e){
+    e.preventDefault();
+    page.classList.add('drag-over');
+  });
+  page.addEventListener('dragleave',function(){
+    page.classList.remove('drag-over');
+  });
+  page.addEventListener('drop',function(e){
+    e.preventDefault();
+    page.classList.remove('drag-over');
+    var file=e.dataTransfer.files[0];
+    if(!file||!file.type.startsWith('image/')) return;
+    setImage(page,file);
+  });
+
+  // クリックでもファイル選択
+  page.addEventListener('click',function(){
+    var inp=document.createElement('input');
+    inp.type='file'; inp.accept='image/*';
+    inp.onchange=function(e){
+      if(e.target.files[0]) setImage(page,e.target.files[0]);
+    };
+    inp.click();
+  });
+});
+
+function setImage(page,file){
+  var reader=new FileReader();
+  reader.onload=function(e){
+    // プレースホルダーを削除
+    var ph=page.querySelector('.placeholder');
+    if(ph) ph.remove();
+    // 既存画像を削除
+    var old=page.querySelector('.page-img');
+    if(old) old.remove();
+    // 新しい画像を追加
+    var img=document.createElement('img');
+    img.className='page-img';
+    img.src=e.target.result;
+    // テキストレイヤーの前に挿入
+    var txt=page.querySelector('.page-text');
+    if(txt){ page.insertBefore(img,txt); }
+    else { page.appendChild(img); }
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── セリフをクリックで編集 ───────────────────────────────────
+document.querySelectorAll('.serif').forEach(function(el){
+  el.style.cursor='text';
+  el.style.pointerEvents='all';
+  el.addEventListener('click',function(e){
+    e.stopPropagation();
+    var txt=prompt('セリフを入力：',el.textContent);
+    if(txt!==null) el.textContent=txt;
+  });
+});
+</script>
+</body>
+</html>

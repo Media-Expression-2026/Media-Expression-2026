@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Generative World</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#000; overflow:hidden; font-family:'Hiragino Sans','Yu Gothic',sans-serif; }
+canvas#glc { position:fixed; inset:0; width:100%; height:100%; }
+
+/* キャラクター */
+#character {
+  position:fixed;
+  width: 220px;
+  image-rendering: pixelated;
+  pointer-events:none;
+  filter: drop-shadow(0 0 20px rgba(150,255,150,0.5));
+}
+
+/* セリフ */
+#caption {
+  position:fixed;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+  padding: 14px 28px;
+  font-size: 18px;
+  color: #fff;
+  letter-spacing: 0.1em;
+  max-width: 700px;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+/* 開始画面 */
+#start {
+  position:fixed; inset:0;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  background: rgba(0,0,0,0.88);
+  z-index:100; cursor:pointer;
+}
+#start h1 {
+  font-size: clamp(20px,4vw,42px);
+  color: rgba(255,255,255,0.85);
+  letter-spacing: 0.08em;
+  font-weight: 300;
+  margin-bottom: 20px;
+}
+#start .hint {
+  font-size: 12px;
+  color: rgba(255,255,255,0.3);
+  letter-spacing: 0.2em;
+}
+
+/* UI */
+#ui {
+  position:fixed; bottom:16px; right:20px;
+  font-size:10px; color:rgba(255,255,255,0.2);
+  letter-spacing:0.1em; line-height:2;
+  pointer-events:none;
+}
+</style>
+</head>
+<body>
+
+<canvas id="glc"></canvas>
+<img id="character" src="" alt="">
+<div id="caption"></div>
+
+<div id="start">
+  <h1 id="start-title">Generative World</h1>
+  <div class="hint">クリックして始める</div>
+</div>
+
+<div id="ui">
+  SPACE: 次のセリフ &nbsp; S: シェーダー切替 &nbsp; M: 音楽ON/OFF
+</div>
+
+<script>
+// ============================================================
+//  ★ ここだけ編集する
+// ============================================================
+const CONFIG = {
+
+  // 作品タイトル
+  title: '作品タイトルをここに',
+
+  // キャラクター画像（media/ フォルダに入れる）
+  character: 'media/character.png',
+
+  // キャラクターの動き
+  // 'float'=ふわふわ  'spin'=回転  'bounce'=跳ねる  'drift'=漂う
+  motion: 'float',
+
+  // キャラクターのサイズ（px）
+  characterSize: 220,
+
+  // シェーダータイプ 1〜4
+  // 1=UV色  2=sin波  3=ノイズ歪み  4=サイマティクス
+  shader: 4,
+
+  // 背景の速度
+  speed: 0.5,
+
+  // 音楽ファイル（media/ フォルダに入れる）
+  music: 'media/music.mp3',
+
+  // セリフリスト
+  // time: 秒後に表示  text: 画面に出る文字  voice: 音声ファイル（省略可）
+  lines: [
+    { time: 2,   text: 'なのだ。',           voice: 'media/voice01.wav' },
+    { time: 6,   text: 'ここは不思議な場所なのだ。', voice: 'media/voice02.wav' },
+    { time: 12,  text: '...',                voice: '' },
+    { time: 16,  text: 'また会おうなのだ。',   voice: 'media/voice03.wav' },
+  ],
+
+  // セリフの表示時間（秒）
+  lineDuration: 3.5,
+};
+// ============================================================
+
+// ── WebGL setup ──────────────────────────────────────────────
+const canvas = document.getElementById('glc');
+const gl = canvas.getContext('webgl', { preserveDrawingBuffer: false })
+        || canvas.getContext('experimental-webgl');
+
+const VS = `attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}`;
+
+const FS_HEAD = `
+precision highp float;
+uniform vec2 R; uniform float T; uniform vec2 M;
+#define PI 3.14159265
+vec3 hsv(float h,float s,float v){
+  vec4 K=vec4(1.,2./3.,1./3.,3.);
+  vec3 p=abs(fract(h+K.xyz)*6.-K.www);
+  return v*mix(K.xxx,clamp(p-K.xxx,0.,1.),s);
+}
+`;
+
+const SHADERS = [
+  // 1: UV色
+  FS_HEAD+`void main(){
+    vec2 uv=gl_FragCoord.xy/R;
+    gl_FragColor=vec4(uv.x,uv.y,sin(T*0.5)*0.5+0.5,1.);
+  }`,
+  // 2: sin波
+  FS_HEAD+`void main(){
+    vec2 uv=(gl_FragCoord.xy-R*.5)/min(R.x,R.y);
+    float f=sin(uv.x*(8.+M.x*8.)*PI+T)*sin(uv.y*(8.+M.y*8.)*PI+T*.7);
+    gl_FragColor=vec4(hsv(.6+f*.1,.8,f*.5+.5),1.);
+  }`,
+  // 3: ノイズ歪み
+  FS_HEAD+`
+  float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);}
+  float noise(vec2 p){
+    vec2 i=floor(p),f=fract(p),u=f*f*(3.-2.*f);
+    return mix(mix(hash(i),hash(i+vec2(1,0)),u.x),
+               mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),u.x),u.y);
+  }
+  void main(){
+    vec2 uv=(gl_FragCoord.xy-R*.5)/min(R.x,R.y)*2.;
+    float t=T*.3;
+    vec2 w=vec2(noise(uv*2.+vec2(t,t*.7)),noise(uv*2.+vec2(t*1.3+5.2,t*.9)));
+    float n=noise(uv*2.+w*(M.x+.5)*2.+t);
+    gl_FragColor=vec4(hsv(.55+n*.3+M.y*.3,.75,n),1.);
+  }`,
+  // 4: サイマティクス
+  FS_HEAD+`
+  vec2 rot(vec2 p,float a){return vec2(p.x*cos(a)-p.y*sin(a),p.x*sin(a)+p.y*cos(a));}
+  void main(){
+    vec2 uv=(gl_FragCoord.xy-R*.5)/min(R.x,R.y);
+    uv=rot(uv,T*.04)*1.5;
+    float mx=M.x*2.-1.,my=M.y*2.-1.;
+    float n=6.+mx*3.,m=8.+my*3.;
+    float w=sin(n*PI*uv.x+T)*sin(m*PI*uv.y)+sin(m*PI*uv.x-T*.7)*sin(n*PI*uv.y+T*.3);
+    float nd=1.-smoothstep(0.,.18,abs(w));
+    float g=pow(nd,2.5);
+    vec3 col=mix(hsv(.6,.4,.03),hsv(.55+w*.12,.75,g),g);
+    gl_FragColor=vec4(col,1.);
+  }`,
+];
+
+function mkProg(fsrc) {
+  function mkS(type,src){
+    const s=gl.createShader(type);
+    gl.shaderSource(s,src); gl.compileShader(s);
+    if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(s));
+    return s;
+  }
+  const p=gl.createProgram();
+  gl.attachShader(p,mkS(gl.VERTEX_SHADER,VS));
+  gl.attachShader(p,mkS(gl.FRAGMENT_SHADER,fsrc));
+  gl.linkProgram(p); return p;
+}
+
+const progs = SHADERS.map(mkProg);
+let shaderIdx = Math.max(0, Math.min(CONFIG.shader-1, 3));
+let prog = progs[shaderIdx];
+
+const buf=gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+
+function useProg(p){
+  gl.useProgram(p);
+  const loc=gl.getAttribLocation(p,'a');
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+}
+useProg(prog);
+
+function resize(){
+  canvas.width=innerWidth; canvas.height=innerHeight;
+  gl.viewport(0,0,canvas.width,canvas.height);
+}
+window.addEventListener('resize',resize); resize();
+
+// ── character ────────────────────────────────────────────────
+const charEl = document.getElementById('character');
+charEl.src = CONFIG.character;
+charEl.style.width = CONFIG.characterSize + 'px';
+
+let charX = innerWidth * 0.65;
+let charY = innerHeight * 0.4;
+let charAngle = 0;
+let charVY = 0;
+
+function updateChar(t) {
+  const m = CONFIG.motion;
+  const cx = innerWidth * 0.65;
+  const cy = innerHeight * 0.4;
+  const s = CONFIG.characterSize;
+
+  if (m === 'float') {
+    charX = cx + Math.sin(t * 0.4) * 20;
+    charY = cy + Math.sin(t * 0.6) * 30;
+    charAngle = Math.sin(t * 0.3) * 5;
+  } else if (m === 'spin') {
+    charX = cx + Math.cos(t * 0.8) * 80;
+    charY = cy + Math.sin(t * 0.8) * 40;
+    charAngle = t * 60 % 360;
+  } else if (m === 'bounce') {
+    charX = cx + Math.sin(t * 0.5) * 40;
+    charY = cy + Math.abs(Math.sin(t * 1.2)) * -80;
+    charAngle = Math.sin(t * 0.5) * 8;
+  } else if (m === 'drift') {
+    charX = cx + Math.sin(t * 0.2) * 60 + Math.sin(t * 0.7) * 20;
+    charY = cy + Math.cos(t * 0.3) * 50 + Math.cos(t * 0.9) * 15;
+    charAngle = Math.sin(t * 0.25) * 12;
+  }
+
+  charEl.style.left = (charX - s/2) + 'px';
+  charEl.style.top  = (charY - s/2) + 'px';
+  charEl.style.transform = `rotate(${charAngle}deg)`;
+}
+
+// ── audio ────────────────────────────────────────────────────
+let audioCtx = null;
+let musicBuf  = null;
+let musicNode = null;
+let musicOn   = true;
+let mouse     = [0.5, 0.5];
+
+async function initAudio() {
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (CONFIG.music) {
+    try {
+      const res  = await fetch(CONFIG.music);
+      const data = await res.arrayBuffer();
+      musicBuf   = await audioCtx.decodeAudioData(data);
+      playMusic();
+    } catch(e) { console.warn('音楽ファイルが見つかりません:', CONFIG.music); }
+  }
+}
+
+function playMusic() {
+  if (!musicBuf || !audioCtx) return;
+  if (musicNode) { try { musicNode.stop(); } catch(e){} }
+  musicNode = audioCtx.createBufferSource();
+  musicNode.buffer = musicBuf;
+  musicNode.loop   = true;
+  musicNode.connect(audioCtx.destination);
+  musicNode.start();
+}
+
+async function playVoice(src) {
+  if (!src || !audioCtx) return;
+  try {
+    const res  = await fetch(src);
+    const data = await res.arrayBuffer();
+    const buf  = await audioCtx.decodeAudioData(data);
+    const node = audioCtx.createBufferSource();
+    node.buffer = buf;
+    node.connect(audioCtx.destination);
+    node.start();
+  } catch(e) { console.warn('音声ファイルが見つかりません:', src); }
+}
+
+// ── caption ──────────────────────────────────────────────────
+const capEl = document.getElementById('caption');
+let capTimer = null;
+
+function showCaption(text, voice) {
+  if (capTimer) clearTimeout(capTimer);
+  capEl.textContent = text;
+  capEl.style.opacity = '1';
+  if (voice) playVoice(voice);
+  capTimer = setTimeout(() => { capEl.style.opacity = '0'; },
+    CONFIG.lineDuration * 1000);
+}
+
+// ── timeline ─────────────────────────────────────────────────
+let startedAt  = null;
+let lineIdx    = 0;
+const lines    = CONFIG.lines.slice().sort((a,b)=>a.time-b.time);
+
+function checkTimeline(elapsed) {
+  while (lineIdx < lines.length && elapsed >= lines[lineIdx].time) {
+    const l = lines[lineIdx];
+    showCaption(l.text, l.voice || '');
+    lineIdx++;
+  }
+}
+
+// ── render ───────────────────────────────────────────────────
+let started = false;
+const t0 = performance.now();
+
+function render(now) {
+  const t = (now - t0) / 1000 * CONFIG.speed;
+  const elapsed = started ? (now - startedAt) / 1000 : 0;
+
+  gl.useProgram(prog);
+  const uR = gl.getUniformLocation(prog,'R');
+  const uT = gl.getUniformLocation(prog,'T');
+  const uM = gl.getUniformLocation(prog,'M');
+  if(uR) gl.uniform2f(uR, canvas.width, canvas.height);
+  if(uT) gl.uniform1f(uT, t);
+  if(uM) gl.uniform2f(uM, mouse[0], mouse[1]);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+  if (started) {
+    updateChar(elapsed);
+    checkTimeline(elapsed);
+  }
+
+  requestAnimationFrame(render);
+}
+requestAnimationFrame(render);
+
+// ── mouse ────────────────────────────────────────────────────
+window.addEventListener('mousemove', e => {
+  mouse = [e.clientX/innerWidth, 1-e.clientY/innerHeight];
+});
+
+// ── start ────────────────────────────────────────────────────
+document.getElementById('start-title').textContent = CONFIG.title;
+
+document.getElementById('start').addEventListener('click', async () => {
+  document.getElementById('start').style.display = 'none';
+  await initAudio();
+  started   = true;
+  startedAt = performance.now();
+  lineIdx   = 0;
+});
+
+// ── keyboard ─────────────────────────────────────────────────
+let manualIdx = 0;
+window.addEventListener('keydown', e => {
+  // スペース: 手動でセリフを進める
+  if (e.code === 'Space') {
+    e.preventDefault();
+    if (manualIdx < lines.length) {
+      const l = lines[manualIdx];
+      showCaption(l.text, l.voice||'');
+      manualIdx++;
+    }
+  }
+  // S: シェーダー切替
+  if (e.key === 's' || e.key === 'S') {
+    shaderIdx = (shaderIdx + 1) % progs.length;
+    prog = progs[shaderIdx];
+    useProg(prog);
+  }
+  // M: 音楽ON/OFF
+  if (e.key === 'm' || e.key === 'M') {
+    if (!audioCtx) return;
+    musicOn = !musicOn;
+    if (musicOn) {
+      playMusic();
+    } else {
+      if (musicNode) { try { musicNode.stop(); } catch(e){} musicNode=null; }
+    }
+  }
+});
+</script>
+</body>
+</html>

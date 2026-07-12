@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>ずんだもんの世界</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{background:#000;overflow:hidden;font-family:'Hiragino Sans','Yu Gothic',sans-serif;}
+#gl{position:fixed;inset:0;width:100%;height:100%;}
+#cv{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;}
+
+#start{
+  position:fixed;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.9);z-index:100;cursor:pointer;
+}
+#start h1{font-size:clamp(18px,3vw,36px);font-weight:300;letter-spacing:0.1em;color:#fff;margin-bottom:16px;}
+#start .sub{font-size:11px;color:rgba(255,255,255,0.3);letter-spacing:0.2em;}
+
+#caption{
+  position:fixed;bottom:70px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,0.65);backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,0.12);border-radius:8px;
+  padding:14px 28px;font-size:20px;color:#fff;letter-spacing:0.12em;
+  max-width:700px;text-align:center;
+  opacity:0;transition:opacity 0.3s;pointer-events:none;
+}
+#emotion-label{
+  position:fixed;top:16px;left:50%;transform:translateX(-50%);
+  font-size:10px;letter-spacing:0.2em;color:rgba(255,255,255,0.25);
+  pointer-events:none;z-index:10;font-family:'Courier New',monospace;
+}
+#char{position:fixed;pointer-events:none;}
+
+#replay{
+  position:fixed;inset:0;display:none;flex-direction:column;
+  align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.75);backdrop-filter:blur(12px);
+  z-index:100;
+}
+#replay .msg{
+  font-size:13px;letter-spacing:0.2em;color:rgba(255,255,255,0.5);
+  margin-bottom:24px;
+}
+#replay-btn{
+  padding:14px 40px;
+  border:1px solid rgba(255,255,255,0.3);
+  background:none;color:#fff;
+  font-family:'Hiragino Sans','Yu Gothic',sans-serif;
+  font-size:14px;letter-spacing:0.18em;
+  border-radius:4px;cursor:pointer;
+  transition:background 0.2s,border-color 0.2s;
+}
+#replay-btn:hover{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.6);}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<canvas id="cv"></canvas>
+<div id="caption"></div>
+<div id="emotion-label"></div>
+<img id="char" src="" alt="">
+
+<div id="start">
+  <h1 id="start-title">ずんだもんの世界</h1>
+  <div class="sub">クリックして始める</div>
+</div>
+
+<div id="replay">
+  <div class="msg">おわり</div>
+  <button id="replay-btn">もう一度　▶</button>
+</div>
+
+<script>
+// ============================================================
+//  ★ ここだけ編集する
+// ============================================================
+var CONFIG = {
+  title:     'ずんだもんの世界',
+  character: 'media/zundamon.png',  // キャラクター画像
+  charSize:  200,                   // キャラサイズ(px)
+
+  // 感情ごとのシェーダー設定
+  // hue: 色相(0-1), speed: 速度, intensity: 明るさ
+  // gravity: 三体の重力, chaos: 三体の乱れ度
+  emotions: {
+    normal:  { hue:0.55, speed:0.4, intensity:1.0, gravity:0.4, chaos:0.3, label:'通常' },
+    happy:   { hue:0.12, speed:0.9, intensity:1.8, gravity:0.6, chaos:0.5, label:'うれしい' },
+    angry:   { hue:0.98, speed:1.5, intensity:2.5, gravity:0.9, chaos:1.0, label:'おこ' },
+    sad:     { hue:0.60, speed:0.2, intensity:0.6, gravity:0.2, chaos:0.1, label:'かなしい' },
+    excited: { hue:0.30, speed:2.0, intensity:3.0, gravity:0.7, chaos:0.8, label:'たかぶり' },
+  },
+
+  // セリフリスト
+  lines: [
+    { time:2,  text:'なのだ。',           voice:'media/v01.wav', emotion:'normal'  },
+    { time:6,  text:'うれしいのだ！',      voice:'media/v02.wav', emotion:'happy'   },
+    { time:11, text:'むずかしいのだ…',    voice:'media/v03.wav', emotion:'sad'     },
+    { time:16, text:'ゆるさないのだ！！',  voice:'media/v04.wav', emotion:'angry'   },
+    { time:21, text:'さいこうなのだ！！！',voice:'media/v05.wav', emotion:'excited' },
+  ],
+  lineDuration: 4.0,
+};
+// ============================================================
+
+var W = innerWidth, H = innerHeight;
+
+// ── WebGL shader ─────────────────────────────────────────────
+var glc = document.getElementById('gl');
+var gl  = glc.getContext('webgl') || glc.getContext('experimental-webgl');
+var cv  = document.getElementById('cv');
+var ctx = cv.getContext('2d');
+
+var VS = 'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
+var FS = `
+precision highp float;
+uniform vec2 R; uniform float T;
+uniform float HUE; uniform float SPEED; uniform float INTENSITY;
+uniform float EMOTION; // 0=normal 1=happy 2=angry 3=sad 4=excited
+#define PI 3.14159265
+vec3 hsv(float h,float s,float v){
+  vec4 K=vec4(1.,2./3.,1./3.,3.);
+  vec3 p=abs(fract(h+K.xyz)*6.-K.www);
+  return v*mix(K.xxx,clamp(p-K.xxx,0.,1.),s);
+}
+vec2 rot(vec2 p,float a){return vec2(p.x*cos(a)-p.y*sin(a),p.x*sin(a)+p.y*cos(a));}
+
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);}
+float noise(vec2 p){
+  vec2 i=floor(p),f=fract(p),u=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1,0)),u.x),
+             mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),u.x),u.y);
+}
+
+void main(){
+  vec2 uv=(gl_FragCoord.xy-R*.5)/min(R.x,R.y);
+  float t=T*SPEED;
+  vec3 col=vec3(0.);
+
+  if(EMOTION < 0.5){
+    // normal: サイマティクス
+    vec2 uv2=rot(uv,t*.03)*1.4;
+    float n=5.,m=7.;
+    float w=sin(n*PI*uv2.x+t)*sin(m*PI*uv2.y)+sin(m*PI*uv2.x-t*.7)*sin(n*PI*uv2.y+t*.3);
+    float nd=1.-smoothstep(0.,.18,abs(w));
+    float g=pow(nd,2.5)*INTENSITY;
+    col=mix(hsv(HUE,.4,.02),hsv(HUE+w*.08,.8,g),g);
+
+  } else if(EMOTION < 1.5){
+    // happy: 明るい波紋
+    float r=length(uv);
+    float w=sin(r*12.-t*3.)*0.5+0.5;
+    float ripple=sin(uv.x*8.+t)*sin(uv.y*8.+t*1.3)*0.5+0.5;
+    col=hsv(HUE+ripple*.15,.7,w*INTENSITY*.7);
+
+  } else if(EMOTION < 2.5){
+    // angry: 激しいノイズ
+    vec2 uv2=uv*3.;
+    float n1=noise(uv2+vec2(t,t*.7));
+    float n2=noise(uv2+vec2(t*1.3+5.,t*.9));
+    vec2 warp=vec2(n1,n2);
+    float n=noise(uv2+warp*2.+t);
+    col=hsv(HUE+n*.1,.9,n*INTENSITY);
+    // フラッシュ
+    col+=vec3(sin(t*8.)*.1,0.,0.)*max(0.,sin(t*8.));
+
+  } else if(EMOTION < 3.5){
+    // sad: 静かな雨
+    float rain=fract(uv.y*20.+t*0.5+hash(vec2(floor(uv.x*15.),0.))*10.);
+    float drop=smoothstep(.98,1.,rain)*smoothstep(.0,.02,uv.x+.5);
+    float bg=noise(uv*2.+t*.1)*.3;
+    col=hsv(HUE,.6,(bg+drop*.5)*INTENSITY);
+
+  } else {
+    // excited: 虹色爆発
+    float r=length(uv);
+    float a=atan(uv.y,uv.x);
+    float spiral=sin(r*10.-t*4.+a*3.)*0.5+0.5;
+    float burst=exp(-r*1.5)*2.;
+    col=hsv(HUE+r*.3+t*.1,.9,(spiral+burst)*INTENSITY*.6);
+    // 星
+    float star=pow(max(0.,sin(a*6.+t*2.)),8.)*exp(-r*3.)*3.;
+    col+=hsv(HUE+.3,.5,star);
+  }
+
+  gl_FragColor=vec4(col,1.);
+}`;
+
+function mkS(t,s){
+  var sh=gl.createShader(t);
+  gl.shaderSource(sh,s);gl.compileShader(sh);
+  if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS))console.error(gl.getShaderInfoLog(sh));
+  return sh;
+}
+var prog=gl.createProgram();
+gl.attachShader(prog,mkS(gl.VERTEX_SHADER,VS));
+gl.attachShader(prog,mkS(gl.FRAGMENT_SHADER,FS));
+gl.linkProgram(prog);gl.useProgram(prog);
+var buf=gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+var al=gl.getAttribLocation(prog,'a');
+gl.enableVertexAttribArray(al);
+gl.vertexAttribPointer(al,2,gl.FLOAT,false,0,0);
+
+function resize(){
+  W=innerWidth;H=innerHeight;
+  glc.width=W;glc.height=H;
+  cv.width=W;cv.height=H;
+  gl.viewport(0,0,W,H);
+}
+window.addEventListener('resize',resize);resize();
+
+// ── 三体問題 ─────────────────────────────────────────────────
+var bodies=[
+  {x:-100,y:0,  vx:0.35,vy:0.55, m:1.5,r:20},
+  {x: 100,y:0,  vx:0.35,vy:-0.55,m:1.2,r:17},
+  {x: 0,  y:120,vx:-0.7,vy:0.0,  m:1.0,r:14},
+];
+var trails=[[],[],[]];
+var TRAIL_LEN=60;
+
+function updateBodies(g, chaos){
+  var ax=[0,0,0],ay=[0,0,0];
+  var soft=12;
+  for(var i=0;i<3;i++){
+    for(var j=0;j<3;j++){
+      if(i===j) continue;
+      var dx=bodies[j].x-bodies[i].x;
+      var dy=bodies[j].y-bodies[i].y;
+      var d2=dx*dx+dy*dy+soft*soft;
+      var d=Math.sqrt(d2);
+      var f=g*bodies[i].m*bodies[j].m/d2;
+      ax[i]+=f*dx/d/bodies[i].m;
+      ay[i]+=f*dy/d/bodies[i].m;
+    }
+    // カオス項
+    ax[i]+=(Math.random()-0.5)*chaos*0.1;
+    ay[i]+=(Math.random()-0.5)*chaos*0.1;
+  }
+  var dt=0.25;
+  for(var i=0;i<3;i++){
+    bodies[i].vx+=ax[i]*dt;
+    bodies[i].vy+=ay[i]*dt;
+    bodies[i].x+=bodies[i].vx*dt;
+    bodies[i].y+=bodies[i].vy*dt;
+    trails[i].push({x:bodies[i].x,y:bodies[i].y});
+    if(trails[i].length>TRAIL_LEN) trails[i].shift();
+    var lim=250;
+    if(Math.abs(bodies[i].x)>lim){bodies[i].vx*=-0.6;bodies[i].x=Math.max(-lim,Math.min(lim,bodies[i].x));}
+    if(Math.abs(bodies[i].y)>lim){bodies[i].vy*=-0.6;bodies[i].y=Math.max(-lim,Math.min(lim,bodies[i].y));}
+  }
+}
+
+function drawBodies(theme){
+  var cx=W/2, cy=H/2;
+  var colors=[theme.hue, theme.hue+0.15, theme.hue+0.30];
+  for(var i=0;i<3;i++){
+    var t=trails[i];
+    for(var j=1;j<t.length;j++){
+      var a=Math.floor((j/t.length)*80);
+      var h=colors[i]%1;
+      ctx.strokeStyle=hslStr(h,0.7,0.6,a/255);
+      ctx.lineWidth=j/t.length*2;
+      ctx.beginPath();
+      ctx.moveTo(cx+t[j-1].x, cy+t[j-1].y);
+      ctx.lineTo(cx+t[j].x,   cy+t[j].y);
+      ctx.stroke();
+    }
+    // 体の描画
+    var bx=cx+bodies[i].x, by=cy+bodies[i].y;
+    var r=bodies[i].r;
+    var grad=ctx.createRadialGradient(bx,by,0,bx,by,r);
+    var h=colors[i]%1;
+    grad.addColorStop(0, hslStr(h,0.9,0.9,1));
+    grad.addColorStop(0.6,hslStr(h,0.8,0.6,0.9));
+    grad.addColorStop(1,  hslStr(h,0.7,0.4,0));
+    ctx.fillStyle=grad;
+    ctx.beginPath();
+    ctx.arc(bx,by,r,0,Math.PI*2);
+    ctx.fill();
+  }
+}
+
+function hslStr(h,s,l,a){
+  return 'hsla('+Math.round(h*360)+','+Math.round(s*100)+'%,'+Math.round(l*100)+'%,'+a+')';
+}
+
+// ── キャラクター ─────────────────────────────────────────────
+var charEl=document.getElementById('char');
+charEl.src=CONFIG.character;
+charEl.style.width=CONFIG.charSize+'px';
+
+function updateChar(t, emotion){
+  var cx=W*0.72, cy=H*0.45;
+  var s=CONFIG.charSize;
+  var angle=0;
+
+  if(emotion==='happy'){
+    cy+=Math.sin(t*4)*15;
+    angle=Math.sin(t*3)*8;
+  } else if(emotion==='angry'){
+    cx+=Math.sin(t*12)*6;
+    cy+=Math.cos(t*12)*4;
+    angle=Math.sin(t*10)*5;
+  } else if(emotion==='sad'){
+    cy+=Math.sin(t*0.8)*8;
+    angle=Math.sin(t*0.6)*3-3;
+  } else if(emotion==='excited'){
+    cx+=Math.sin(t*6)*20;
+    cy+=Math.cos(t*5)*15;
+    angle=Math.sin(t*8)*15;
+  } else {
+    cy+=Math.sin(t*0.8)*10;
+    angle=Math.sin(t*0.6)*4;
+  }
+  charEl.style.left=(cx-s/2)+'px';
+  charEl.style.top=(cy-s/2)+'px';
+  charEl.style.transform='rotate('+angle+'deg)';
+}
+
+// ── テキスト ─────────────────────────────────────────────────
+var capEl=document.getElementById('caption');
+var capTimer=null;
+
+function showCaption(text, emotion){
+  if(capTimer) clearTimeout(capTimer);
+  capEl.textContent=text;
+  capEl.style.opacity='1';
+
+  // 感情でスタイル変更
+  var styles={
+    normal:  {fontSize:'20px', color:'#fff',     letterSpacing:'0.12em'},
+    happy:   {fontSize:'26px', color:'#ffe060',  letterSpacing:'0.18em'},
+    angry:   {fontSize:'28px', color:'#ff4040',  letterSpacing:'0.05em'},
+    sad:     {fontSize:'18px', color:'#80b0ff',  letterSpacing:'0.16em'},
+    excited: {fontSize:'32px', color:'#80ff80',  letterSpacing:'0.22em'},
+  };
+  var s=styles[emotion]||styles.normal;
+  capEl.style.fontSize=s.fontSize;
+  capEl.style.color=s.color;
+  capEl.style.letterSpacing=s.letterSpacing;
+
+  document.getElementById('emotion-label').textContent=
+    CONFIG.emotions[emotion].label || emotion;
+
+  capTimer=setTimeout(function(){
+    capEl.style.opacity='0';
+    document.getElementById('emotion-label').textContent='';
+  }, CONFIG.lineDuration*1000);
+}
+
+// ── 音声 ─────────────────────────────────────────────────────
+var audioCtx=null;
+
+async function playVoice(src){
+  if(!src||!audioCtx) return;
+  try{
+    var res=await fetch(src);
+    var data=await res.arrayBuffer();
+    var buf=await audioCtx.decodeAudioData(data);
+    var node=audioCtx.createBufferSource();
+    node.buffer=buf;
+    node.connect(audioCtx.destination);
+    node.start();
+  }catch(e){console.warn('音声なし:',src);}
+}
+
+// ── 感情の状態 ───────────────────────────────────────────────
+var currentEmotion='normal';
+var targetEmotion ='normal';
+var emotionT=0; // 遷移進捗 0→1
+
+// 感情の数値インデックス
+var EMOTION_IDX={normal:0,happy:1,angry:2,sad:3,excited:4};
+
+function setEmotion(e){
+  targetEmotion=e;
+}
+
+// ── タイムライン ─────────────────────────────────────────────
+var started=false, startedAt=null, lineIdx=0;
+var lines=CONFIG.lines.slice().sort(function(a,b){return a.time-b.time;});
+
+function checkTimeline(elapsed){
+  while(lineIdx<lines.length && elapsed>=lines[lineIdx].time){
+    var l=lines[lineIdx];
+    showCaption(l.text, l.emotion||'normal');
+    setEmotion(l.emotion||'normal');
+    playVoice(l.voice||'');
+    lineIdx++;
+  }
+  // 全セリフ終了後にリプレイボタンを表示
+  if(lineIdx>=lines.length){
+    var lastTime=lines[lines.length-1].time;
+    if(elapsed >= lastTime + CONFIG.lineDuration + 0.5){
+      document.getElementById('replay').style.display='flex';
+      started=false;
+    }
+  }
+}
+
+// ── レンダーループ ───────────────────────────────────────────
+var t0=performance.now();
+
+function lerp(a,b,t){ return a+(b-a)*t; }
+
+function render(now){
+  var t=(now-t0)/1000;
+  var elapsed=started?(now-startedAt)/1000:0;
+
+  // 感情遷移
+  emotionT=Math.min(emotionT+0.02,1);
+  var eNow=CONFIG.emotions[currentEmotion];
+  var eTgt=CONFIG.emotions[targetEmotion];
+  if(emotionT>=1){ currentEmotion=targetEmotion; emotionT=0; }
+
+  var hue    =lerp(eNow.hue,     eTgt.hue,     emotionT);
+  var speed  =lerp(eNow.speed,   eTgt.speed,   emotionT);
+  var intens =lerp(eNow.intensity,eTgt.intensity,emotionT);
+  var gravity=lerp(eNow.gravity, eTgt.gravity, emotionT);
+  var chaos  =lerp(eNow.chaos,   eTgt.chaos,   emotionT);
+  var eIdx   =EMOTION_IDX[currentEmotion]||0;
+
+  // GL描画
+  gl.useProgram(prog);
+  gl.uniform2f(gl.getUniformLocation(prog,'R'),W,H);
+  gl.uniform1f(gl.getUniformLocation(prog,'T'),t);
+  gl.uniform1f(gl.getUniformLocation(prog,'HUE'),hue);
+  gl.uniform1f(gl.getUniformLocation(prog,'SPEED'),speed);
+  gl.uniform1f(gl.getUniformLocation(prog,'INTENSITY'),intens);
+  gl.uniform1f(gl.getUniformLocation(prog,'EMOTION'),eIdx);
+  gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+
+  // 2D描画
+  ctx.clearRect(0,0,W,H);
+  if(started){
+    updateBodies(gravity, chaos);
+    drawBodies({hue:hue});
+    updateChar(elapsed, currentEmotion);
+    checkTimeline(elapsed);
+  }
+
+  requestAnimationFrame(render);
+}
+requestAnimationFrame(render);
+
+// ── スタート ─────────────────────────────────────────────────
+document.getElementById('start-title').textContent=CONFIG.title;
+document.getElementById('start').addEventListener('click',async function(){
+  document.getElementById('start').style.display='none';
+  audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  started=true;
+  startedAt=performance.now();
+  lineIdx=0;
+  currentEmotion='normal';
+  targetEmotion='normal';
+});
+
+// もう一度ボタン
+document.getElementById('replay-btn').addEventListener('click',function(){
+  document.getElementById('replay').style.display='none';
+  started=true;
+  startedAt=performance.now();
+  lineIdx=0;
+  currentEmotion='normal';
+  targetEmotion='normal';
+  capEl.style.opacity='0';
+  document.getElementById('emotion-label').textContent='';
+});
+</script>
+</body>
+</html>
