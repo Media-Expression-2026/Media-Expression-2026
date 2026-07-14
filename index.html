@@ -3,20 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="マルチメディア表現II（INS300A）作品アーカイブ。シェーダー・p5.js・WebGL・3D・映像・印刷物などの学生制作物一覧。">
 <title>Media Expression 2026</title>
 <style>
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+html { scroll-behavior: smooth; }
 
 :root {
   --bg:   #0c0c0c;
   --bg2:  #141414;
   --bg3:  #1a1a1a;
-  --line: rgba(255,255,255,0.07);
-  --dim:  rgba(255,255,255,0.22);
+  --line: rgba(255,255,255,0.08);
+  --dim:  rgba(255,255,255,0.30);
   --mid:  rgba(255,255,255,0.55);
-  --fg:   rgba(255,255,255,0.85);
+  --fg:   rgba(255,255,255,0.88);
   --mono: 'Courier New', monospace;
   --sans: system-ui, -apple-system, sans-serif;
+
+  /* category accent colors */
+  --c-shader: #7dd3fc; /* WebGL / GLSL / Three.js */
+  --c-p5:     #fbbf24; /* p5.js */
+  --c-print:  #fb7185; /* Print */
+  --c-media:  #34d399; /* Media / API / Gallery */
+  --c-capture:#c4b5fd; /* Camera / Touch / Loop */
+  --c-assign: #9ca3af; /* 課題 */
 }
 
 body {
@@ -26,64 +37,113 @@ body {
   min-height: 100vh;
 }
 
+a { text-underline-offset: 2px; }
+
 /* ── header ── */
 header {
-  padding: 48px 48px 36px;
+  padding: 40px 48px 28px;
   border-bottom: 1px solid var(--line);
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
+  gap: 12px 24px;
 }
 .header-left h1 {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: normal;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.16em;
   color: var(--fg);
   margin-bottom: 8px;
 }
 .header-left .sub {
-  font-size: 10px;
-  color: var(--dim);
-  letter-spacing: 0.14em;
+  font-size: 11px;
+  color: var(--mid);
+  letter-spacing: 0.1em;
 }
 .header-right {
-  font-size: 9px;
+  font-size: 10px;
   color: var(--dim);
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   text-align: right;
   line-height: 2;
 }
 .header-right a {
   color: var(--dim);
   text-decoration: none;
+  border-bottom: 1px solid transparent;
 }
-.header-right a:hover { color: var(--fg); }
+.header-right a:hover { color: var(--fg); border-color: var(--dim); }
+
+/* ── quick nav ── */
+nav.quicknav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 4px;
+  padding: 10px 44px;
+  background: rgba(12,12,12,0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+nav.quicknav a {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--mid);
+  text-decoration: none;
+  padding: 5px 10px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+nav.quicknav a:hover,
+nav.quicknav a:focus-visible {
+  color: var(--fg);
+  border-color: var(--line);
+  background: var(--bg2);
+}
 
 /* ── grid ── */
 main {
-  padding: 40px 48px 80px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 2px;
+  padding: 36px 48px 56px;
 }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 12px;
+}
+
+section { scroll-margin-top: 52px; }
+section + section { margin-top: 30px; }
 
 /* ── card ── */
 .card {
   background: var(--bg2);
   border: 1px solid var(--line);
+  border-left: 2px solid var(--accent, var(--line));
+  border-radius: 3px;
   display: flex;
   flex-direction: column;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
   text-decoration: none;
   color: inherit;
 }
 .card:hover {
   background: var(--bg3);
-  border-color: rgba(255,255,255,0.14);
+  border-color: rgba(255,255,255,0.16);
+  border-left-color: var(--accent, rgba(255,255,255,0.3));
+  transform: translateY(-1px);
+}
+.card:focus-visible {
+  outline: 1px solid var(--mid);
+  outline-offset: 2px;
 }
 
 .card-head {
-  padding: 16px 18px 12px;
+  padding: 15px 16px 11px;
   border-bottom: 1px solid var(--line);
   display: flex;
   align-items: center;
@@ -92,73 +152,92 @@ main {
 .card-dot {
   width: 6px; height: 6px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.18);
+  background: var(--accent, rgba(255,255,255,0.25));
   flex-shrink: 0;
 }
 .card-name {
-  font-size: 11px;
-  letter-spacing: 0.08em;
+  font-size: 12.5px;
+  letter-spacing: 0.05em;
   color: var(--fg);
 }
 .card-tag {
   margin-left: auto;
-  font-size: 8px;
-  letter-spacing: 0.14em;
-  color: var(--dim);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--accent, var(--dim));
   padding: 2px 6px;
-  border: 1px solid var(--line);
+  border: 1px solid color-mix(in srgb, var(--accent, var(--line)) 45%, transparent);
   border-radius: 2px;
   text-transform: uppercase;
+  flex-shrink: 0;
 }
 
 .card-body {
-  padding: 12px 18px 16px;
+  padding: 12px 16px 16px;
   flex: 1;
 }
 .card-desc {
-  font-size: 10px;
-  color: var(--dim);
-  line-height: 1.8;
-  letter-spacing: 0.04em;
+  font-size: 11.5px;
+  color: var(--mid);
+  line-height: 1.75;
+  letter-spacing: 0.02em;
 }
 
 /* ── section label ── */
 .section-label {
-  grid-column: 1 / -1;
-  padding: 28px 0 10px;
-  font-size: 8px;
-  letter-spacing: 0.22em;
-  color: var(--dim);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 0 0 10px;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--fg);
   text-transform: uppercase;
   border-bottom: 1px solid var(--line);
-  margin-bottom: 2px;
+  margin-bottom: 12px;
 }
-.section-label:first-child { padding-top: 0; }
+.section-label .count {
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  color: var(--dim);
+  text-transform: none;
+}
 
 /* ── new badge ── */
 .badge-new {
   font-size: 8px;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   color: #86efac;
   padding: 1px 5px;
-  border: 1px solid rgba(134,239,172,0.3);
+  border: 1px solid rgba(134,239,172,0.35);
   border-radius: 2px;
-  margin-left: 6px;
+  margin-left: auto;
 }
+.card-tag + .badge-new { margin-left: 6px; }
 
 /* ── footer ── */
 footer {
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  padding: 10px 48px;
-  background: rgba(12,12,12,0.9);
-  backdrop-filter: blur(8px);
+  padding: 16px 48px;
   border-top: 1px solid var(--line);
-  font-size: 9px;
+  font-size: 10px;
   color: var(--dim);
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
   justify-content: space-between;
+}
+
+.card.shader  { --accent: var(--c-shader); }
+.card.p5      { --accent: var(--c-p5); }
+.card.print   { --accent: var(--c-print); }
+.card.media   { --accent: var(--c-media); }
+.card.capture { --accent: var(--c-capture); }
+.card.assign  { --accent: var(--c-assign); }
+
+@media (max-width: 640px) {
+  header, main, nav.quicknav, footer { padding-left: 20px; padding-right: 20px; }
+  .grid { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -174,299 +253,332 @@ footer {
   </div>
 </header>
 
+<nav class="quicknav" aria-label="セクションへ移動">
+  <a href="#latest">最新</a>
+  <a href="#stream">映像・ストリーム</a>
+  <a href="#threed">3D・パーティクル</a>
+  <a href="#production">映像制作</a>
+  <a href="#photo">写真・ビュー</a>
+  <a href="#weekly">週別課題</a>
+</nav>
+
 <main>
 
-  <!-- ── 最新 ── -->
-  <div class="section-label">最新 — 2026 Spring</div>
+  <section id="latest">
+    <div class="section-label">最新 — 2026 Spring <span class="count"></span></div>
+    <div class="grid">
 
-  <a class="card" href="shader_gallery/">
-    <div class="card-head">
-      <span class="card-dot"></span>
-      <span class="card-name">shader_gallery</span>
-      <span class="card-tag">GLSL</span>
-      <span class="badge-new">NEW</span>
-    </div>
-    <div class="card-body">
-      <div class="card-desc">数式が映像になる4ステージのシェーダーギャラリー。マウス操作・PNG/動画保存対応。</div>
-    </div>
-  </a>
+      <a class="card shader" href="shader_gallery/">
+        <div class="card-head">
+          <span class="card-dot"></span>
+          <span class="card-name">shader_gallery</span>
+          <span class="card-tag">GLSL</span>
+          <span class="badge-new">NEW</span>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">数式が映像になる4ステージのシェーダーギャラリー。マウス操作・PNG/動画保存対応。</div>
+        </div>
+      </a>
 
-  <a class="card" href="shader_launcher/">
-    <div class="card-head">
-      <span class="card-dot"></span>
-      <span class="card-name">shader_launcher</span>
-      <span class="card-tag">p5.js</span>
-      <span class="badge-new">NEW</span>
-    </div>
-    <div class="card-body">
-      <div class="card-desc">Adam Ferrissのシェーダースケッチへのリンク集。UV・マウス・ノイズ・フィードバックなど8カテゴリ。</div>
-    </div>
-  </a>
+      <a class="card p5" href="shader_launcher/">
+        <div class="card-head">
+          <span class="card-dot"></span>
+          <span class="card-name">shader_launcher</span>
+          <span class="card-tag">p5.js</span>
+          <span class="badge-new">NEW</span>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">Adam Ferrissのシェーダースケッチへのリンク集。UV・マウス・ノイズ・フィードバックなど8カテゴリ。</div>
+        </div>
+      </a>
 
-  <a class="card" href="auto_collage/">
-    <div class="card-head">
-      <span class="card-dot"></span>
-      <span class="card-name">auto_collage</span>
-      <span class="card-tag">p5.js</span>
-      <span class="badge-new">NEW</span>
-    </div>
-    <div class="card-body">
-      <div class="card-desc">マスク切り抜き・コピー・ランダム配置・パターン・描画モード・スリットスキャンの6モードコラージュツール。</div>
-    </div>
-  </a>
+      <a class="card p5" href="auto_collage/">
+        <div class="card-head">
+          <span class="card-dot"></span>
+          <span class="card-name">auto_collage</span>
+          <span class="card-tag">p5.js</span>
+          <span class="badge-new">NEW</span>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">マスク切り抜き・コピー・ランダム配置・パターン・描画モード・スリットスキャンの6モードコラージュツール。</div>
+        </div>
+      </a>
 
-  <a class="card" href="sumi_tool/">
-    <div class="card-head">
-      <span class="card-dot"></span>
-      <span class="card-name">sumi_tool</span>
-      <span class="card-tag">WebGL</span>
-      <span class="badge-new">NEW</span>
-    </div>
-    <div class="card-body">
-      <div class="card-desc">墨文字PNGをドロップして5モードで表現。パーティクル・シェーダー重ね・雨・マスク・筆書きアニメーション。</div>
-    </div>
-  </a>
+      <a class="card shader" href="sumi_tool/">
+        <div class="card-head">
+          <span class="card-dot"></span>
+          <span class="card-name">sumi_tool</span>
+          <span class="card-tag">WebGL</span>
+          <span class="badge-new">NEW</span>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">墨文字PNGをドロップして5モードで表現。パーティクル・シェーダー重ね・雨・マスク・筆書きアニメーション。</div>
+        </div>
+      </a>
 
-  <a class="card" href="text_tool/">
-    <div class="card-head">
-      <span class="card-dot"></span>
-      <span class="card-name">text_tool</span>
-      <span class="card-tag">WebGL</span>
-      <span class="badge-new">NEW</span>
-    </div>
-    <div class="card-body">
-      <div class="card-desc">言葉を入力して画面に流す・崩す・爆発させる。4モードのテキスト表現ツール。ピンク〜紫系シェーダー背景。</div>
-    </div>
-  </a>
+      <a class="card shader" href="text_tool/">
+        <div class="card-head">
+          <span class="card-dot"></span>
+          <span class="card-name">text_tool</span>
+          <span class="card-tag">WebGL</span>
+          <span class="badge-new">NEW</span>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">言葉を入力して画面に流す・崩す・爆発させる。4モードのテキスト表現ツール。ピンク〜紫系シェーダー背景。</div>
+        </div>
+      </a>
 
-  <a class="card" href="generative_world/">
-    <div class="card-head">
-      <span class="card-dot"></span>
-      <span class="card-name">generative_world</span>
-      <span class="card-tag">WebGL</span>
-      <span class="badge-new">NEW</span>
-    </div>
-    <div class="card-body">
-      <div class="card-desc">シェーダー背景＋キャラクター＋音楽＋VOICEVOX音声＋セリフテキストを統合した総合表現テンプレート。</div>
-    </div>
-  </a>
+      <a class="card shader" href="generative_world/">
+        <div class="card-head">
+          <span class="card-dot"></span>
+          <span class="card-name">generative_world</span>
+          <span class="card-tag">WebGL</span>
+          <span class="badge-new">NEW</span>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">シェーダー背景＋キャラクター＋音楽＋VOICEVOX音声＋セリフテキストを統合した総合表現テンプレート。</div>
+        </div>
+      </a>
 
-  <a class="card" href="zine_template/">
-    <div class="card-head">
-      <span class="card-dot"></span>
-      <span class="card-name">zine_template</span>
-      <span class="card-tag">Print</span>
-      <span class="badge-new">NEW</span>
-    </div>
-    <div class="card-body">
-      <div class="card-desc">A4×1枚・8ページ折りzineテンプレート。スクリーンショットをドロップして印刷するだけ。</div>
-    </div>
-  </a>
+      <a class="card print" href="zine_template/">
+        <div class="card-head">
+          <span class="card-dot"></span>
+          <span class="card-name">zine_template</span>
+          <span class="card-tag">Print</span>
+          <span class="badge-new">NEW</span>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">A4×1枚・8ページ折りzineテンプレート。スクリーンショットをドロップして印刷するだけ。</div>
+        </div>
+      </a>
 
-  <a class="card" href="zundamon_world/">
-    <div class="card-head">
-      <span class="card-dot"></span>
-      <span class="card-name">zundamon_world</span>
-      <span class="card-tag">WebGL</span>
-      <span class="badge-new">NEW</span>
-    </div>
-    <div class="card-body">
-      <div class="card-desc">感情タグで映像・シェーダー・三体・テキスト・キャラが変化。VOICEVOXと連動する総合表現テンプレート。</div>
-    </div>
-  </a>
+      <a class="card shader" href="zundamon_world/">
+        <div class="card-head">
+          <span class="card-dot"></span>
+          <span class="card-name">zundamon_world</span>
+          <span class="card-tag">WebGL</span>
+          <span class="badge-new">NEW</span>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">感情タグで映像・シェーダー・三体・テキスト・キャラが変化。VOICEVOXと連動する総合表現テンプレート。</div>
+        </div>
+      </a>
 
-  <a class="card" href="three_body_mochi/">
-    <div class="card-head">
-      <span class="card-dot"></span>
-      <span class="card-name">three_body_mochi</span>
-      <span class="card-tag">p5.js</span>
-      <span class="badge-new">NEW</span>
-    </div>
-    <div class="card-body">
-      <div class="card-desc">三体問題の軌道計算＋お餅のような融合表現。マウスで重力と速度を変化させる。</div>
-    </div>
-  </a>
+      <a class="card p5" href="three_body_mochi/">
+        <div class="card-head">
+          <span class="card-dot"></span>
+          <span class="card-name">three_body_mochi</span>
+          <span class="card-tag">p5.js</span>
+          <span class="badge-new">NEW</span>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">三体問題の軌道計算＋お餅のような融合表現。マウスで重力と速度を変化させる。</div>
+        </div>
+      </a>
 
-  <a class="card" href="package_design/">
-    <div class="card-head">
-      <span class="card-dot"></span>
-      <span class="card-name">package_design</span>
-      <span class="card-tag">Print</span>
-      <span class="badge-new">NEW</span>
-    </div>
-    <div class="card-body">
-      <div class="card-desc">A6パッケージデザインテンプレート。背景色・キャラ名・コピーをリアルタイム編集して印刷。</div>
-    </div>
-  </a>
+      <a class="card print" href="package_design/">
+        <div class="card-head">
+          <span class="card-dot"></span>
+          <span class="card-name">package_design</span>
+          <span class="card-tag">Print</span>
+          <span class="badge-new">NEW</span>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">A6パッケージデザインテンプレート。背景色・キャラ名・コピーをリアルタイム編集して印刷。</div>
+        </div>
+      </a>
 
-  <!-- ── 映像・ストリーム ── -->
-  <div class="section-label">映像・ストリーム</div>
+    </div>
+  </section>
 
-  <a class="card" href="earth_stream/">
-    <div class="card-head">
-      <span class="card-dot"></span>
-      <span class="card-name">earth_stream</span>
-      <span class="card-tag">WebGL</span>
-    </div>
-    <div class="card-body">
-      <div class="card-desc">地球ストリーム映像。</div>
-    </div>
-  </a>
+  <section id="stream">
+    <div class="section-label">映像・ストリーム <span class="count"></span></div>
+    <div class="grid">
 
-  <a class="card" href="human_entropy_stream/">
-    <div class="card-head">
-      <span class="card-dot"></span>
-      <span class="card-name">human_entropy_stream</span>
-      <span class="card-tag">p5.js</span>
-    </div>
-    <div class="card-body">
-      <div class="card-desc">ヒューマンエントロピーストリーム。</div>
-    </div>
-  </a>
+      <a class="card shader" href="earth_stream/">
+        <div class="card-head">
+          <span class="card-dot"></span>
+          <span class="card-name">earth_stream</span>
+          <span class="card-tag">WebGL</span>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">地球ストリーム映像。</div>
+        </div>
+      </a>
 
-  <a class="card" href="human_entropy_stream3D/">
-    <div class="card-head">
-      <span class="card-dot"></span>
-      <span class="card-name">human_entropy_stream3D</span>
-      <span class="card-tag">WebGL</span>
-    </div>
-    <div class="card-body">
-      <div class="card-desc">3D版ヒューマンエントロピーストリーム。</div>
-    </div>
-  </a>
+      <a class="card p5" href="human_entropy_stream/">
+        <div class="card-head">
+          <span class="card-dot"></span>
+          <span class="card-name">human_entropy_stream</span>
+          <span class="card-tag">p5.js</span>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">ヒューマンエントロピーストリーム。</div>
+        </div>
+      </a>
 
-  <a class="card" href="mars_stream/">
-    <div class="card-head">
-      <span class="card-dot"></span>
-      <span class="card-name">mars_stream</span>
-      <span class="card-tag">WebGL</span>
-    </div>
-    <div class="card-body">
-      <div class="card-desc">火星ストリーム映像。</div>
-    </div>
-  </a>
+      <a class="card shader" href="human_entropy_stream3D/">
+        <div class="card-head">
+          <span class="card-dot"></span>
+          <span class="card-name">human_entropy_stream3D</span>
+          <span class="card-tag">WebGL</span>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">3D版ヒューマンエントロピーストリーム。</div>
+        </div>
+      </a>
 
-  <a class="card" href="earth_stream_media/">
-    <div class="card-head">
-      <span class="card-dot"></span>
-      <span class="card-name">earth_stream_media</span>
-      <span class="card-tag">Media</span>
-    </div>
-    <div class="card-body">
-      <div class="card-desc">ストリームメディアノード。</div>
-    </div>
-  </a>
+      <a class="card shader" href="mars_stream/">
+        <div class="card-head">
+          <span class="card-dot"></span>
+          <span class="card-name">mars_stream</span>
+          <span class="card-tag">WebGL</span>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">火星ストリーム映像。</div>
+        </div>
+      </a>
 
-  <a class="card" href="wiki_stream/">
-    <div class="card-head">
-      <span class="card-dot"></span>
-      <span class="card-name">wiki_stream</span>
-      <span class="card-tag">API</span>
-    </div>
-    <div class="card-body">
-      <div class="card-desc">Wikipediaストリーム。</div>
-    </div>
-  </a>
+      <a class="card media" href="earth_stream_media/">
+        <div class="card-head">
+          <span class="card-dot"></span>
+          <span class="card-name">earth_stream_media</span>
+          <span class="card-tag">Media</span>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">ストリームメディアノード。</div>
+        </div>
+      </a>
 
-  <!-- ── 3D・パーティクル ── -->
-  <div class="section-label">3D・パーティクル</div>
+      <a class="card media" href="wiki_stream/">
+        <div class="card-head">
+          <span class="card-dot"></span>
+          <span class="card-name">wiki_stream</span>
+          <span class="card-tag">API</span>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">Wikipediaストリーム。</div>
+        </div>
+      </a>
 
-  <a class="card" href="3D article/">
-    <div class="card-head">
-      <span class="card-dot"></span>
-      <span class="card-name">3D article</span>
-      <span class="card-tag">Three.js</span>
     </div>
-    <div class="card-body">
-      <div class="card-desc">3D記事表現。</div>
-    </div>
-  </a>
+  </section>
 
-  <a class="card" href="3D article 2nd/">
-    <div class="card-head">
-      <span class="card-dot"></span>
-      <span class="card-name">3D article 2nd</span>
-      <span class="card-tag">Three.js</span>
-    </div>
-    <div class="card-body">
-      <div class="card-desc">3D記事表現 第2版。</div>
-    </div>
-  </a>
+  <section id="threed">
+    <div class="section-label">3D・パーティクル <span class="count"></span></div>
+    <div class="grid">
 
-  <a class="card" href="particle-app/">
-    <div class="card-head">
-      <span class="card-dot"></span>
-      <span class="card-name">particle-app</span>
-      <span class="card-tag">WebGL</span>
-    </div>
-    <div class="card-body">
-      <div class="card-desc">パーティクルシミュレーション。</div>
-    </div>
-  </a>
+      <a class="card shader" href="3D article/">
+        <div class="card-head">
+          <span class="card-dot"></span>
+          <span class="card-name">3D article</span>
+          <span class="card-tag">Three.js</span>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">3D記事表現。</div>
+        </div>
+      </a>
 
-  <!-- ── 映像制作 ── -->
-  <div class="section-label">映像制作</div>
+      <a class="card shader" href="3D article 2nd/">
+        <div class="card-head">
+          <span class="card-dot"></span>
+          <span class="card-name">3D article 2nd</span>
+          <span class="card-tag">Three.js</span>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">3D記事表現 第2版。</div>
+        </div>
+      </a>
 
-  <a class="card" href="stopmotion/">
-    <div class="card-head">
-      <span class="card-dot"></span>
-      <span class="card-name">stopmotion</span>
-      <span class="card-tag">Camera</span>
-    </div>
-    <div class="card-body">
-      <div class="card-desc">ストップモーション制作ツール。</div>
-    </div>
-  </a>
+      <a class="card shader" href="particle-app/">
+        <div class="card-head">
+          <span class="card-dot"></span>
+          <span class="card-name">particle-app</span>
+          <span class="card-tag">WebGL</span>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">パーティクルシミュレーション。</div>
+        </div>
+      </a>
 
-  <a class="card" href="stopmotion4Touch/">
-    <div class="card-head">
-      <span class="card-dot"></span>
-      <span class="card-name">stopmotion4Touch</span>
-      <span class="card-tag">Touch</span>
     </div>
-    <div class="card-body">
-      <div class="card-desc">タッチデバイス向けストップモーション。</div>
-    </div>
-  </a>
+  </section>
 
-  <a class="card" href="ShemelessLoop/">
-    <div class="card-head">
-      <span class="card-dot"></span>
-      <span class="card-name">ShemelessLoop</span>
-      <span class="card-tag">Loop</span>
-    </div>
-    <div class="card-body">
-      <div class="card-desc">シームレスループ映像。</div>
-    </div>
-  </a>
+  <section id="production">
+    <div class="section-label">映像制作 <span class="count"></span></div>
+    <div class="grid">
 
-  <!-- ── 写真・ビュー ── -->
-  <div class="section-label">写真・ビュー</div>
+      <a class="card capture" href="stopmotion/">
+        <div class="card-head">
+          <span class="card-dot"></span>
+          <span class="card-name">stopmotion</span>
+          <span class="card-tag">Camera</span>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">ストップモーション制作ツール。</div>
+        </div>
+      </a>
 
-  <a class="card" href="photos_view/">
-    <div class="card-head">
-      <span class="card-dot"></span>
-      <span class="card-name">photos_view</span>
-      <span class="card-tag">Gallery</span>
-    </div>
-    <div class="card-body">
-      <div class="card-desc">フォトビューア。</div>
-    </div>
-  </a>
+      <a class="card capture" href="stopmotion4Touch/">
+        <div class="card-head">
+          <span class="card-dot"></span>
+          <span class="card-name">stopmotion4Touch</span>
+          <span class="card-tag">Touch</span>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">タッチデバイス向けストップモーション。</div>
+        </div>
+      </a>
 
-  <!-- ── 週別課題 ── -->
-  <div class="section-label">週別課題</div>
+      <a class="card capture" href="ShemelessLoop/">
+        <div class="card-head">
+          <span class="card-dot"></span>
+          <span class="card-name">ShemelessLoop</span>
+          <span class="card-tag">Loop</span>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">シームレスループ映像。</div>
+        </div>
+      </a>
 
-  <a class="card" href="week5/">
-    <div class="card-head">
-      <span class="card-dot"></span>
-      <span class="card-name">week5</span>
-      <span class="card-tag">課題</span>
     </div>
-    <div class="card-body">
-      <div class="card-desc">Week 5 課題。</div>
+  </section>
+
+  <section id="photo">
+    <div class="section-label">写真・ビュー <span class="count"></span></div>
+    <div class="grid">
+
+      <a class="card media" href="photos_view/">
+        <div class="card-head">
+          <span class="card-dot"></span>
+          <span class="card-name">photos_view</span>
+          <span class="card-tag">Gallery</span>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">フォトビューア。</div>
+        </div>
+      </a>
+
     </div>
-  </a>
+  </section>
+
+  <section id="weekly">
+    <div class="section-label">週別課題 <span class="count"></span></div>
+    <div class="grid">
+
+      <a class="card assign" href="week5/">
+        <div class="card-head">
+          <span class="card-dot"></span>
+          <span class="card-name">week5</span>
+          <span class="card-tag">課題</span>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">Week 5 課題。</div>
+        </div>
+      </a>
+
+    </div>
+  </section>
 
 </main>
 
@@ -478,6 +590,12 @@ footer {
 <script>
 document.getElementById('ts').textContent =
   new Date().toLocaleDateString('ja-JP', { year:'numeric', month:'long', day:'numeric' });
+
+document.querySelectorAll('section').forEach(section => {
+  const n = section.querySelectorAll('.card').length;
+  const countEl = section.querySelector('.count');
+  if (countEl) countEl.textContent = `(${n})`;
+});
 </script>
 </body>
 </html>
